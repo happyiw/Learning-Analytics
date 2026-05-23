@@ -1,0 +1,438 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.deps import get_current_user, get_db, require_teacher_or_admin
+from app.models import (
+    AnswerOption,
+    Course,
+    Module,
+    Question,
+    Test,
+    TestAttempt,
+    User,
+    UserAnswer,
+)
+from app.schemas import (
+    AnswerOptionCreate,
+    AnswerOptionRead,
+    AnswerOptionUpdate,
+    AttemptResultRead,
+    MessageRead,
+    PublicQuestionRead,
+    QuestionCreate,
+    QuestionRead,
+    QuestionUpdate,
+    TestAttemptRead,
+    TestCreate,
+    TestRead,
+    TestUpdate,
+    UserAnswerCreate,
+    UserAnswerRead,
+)
+from app.services.analytics import upsert_topic_result
+
+router = APIRouter(tags=["tests"])
+
+
+def get_test_or_404(test_id: int, db: Session) -> Test:
+    test = db.get(Test, test_id)
+    if test is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found.")
+    return test
+
+
+def get_question_or_404(question_id: int, db: Session) -> Question:
+    question = db.get(Question, question_id)
+    if question is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
+    return question
+
+
+def get_answer_option_or_404(option_id: int, db: Session) -> AnswerOption:
+    option = db.get(AnswerOption, option_id)
+    if option is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer option not found.")
+    return option
+
+
+def get_attempt_or_404(attempt_id: int, db: Session) -> TestAttempt:
+    attempt = db.scalar(
+        select(TestAttempt)
+        .where(TestAttempt.id == attempt_id)
+        .options(selectinload(TestAttempt.test), selectinload(TestAttempt.answers))
+    )
+    if attempt is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Test attempt not found."
+        )
+    return attempt
+
+
+def ensure_attempt_access(attempt: TestAttempt, current_user: User) -> None:
+    if attempt.user_id != current_user.id and current_user.role not in {"teacher", "admin"}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+
+def normalize_text(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def score_answer(
+    question: Question,
+    selected_option_id: int | None,
+    text_answer: str | None,
+    db: Session,
+) -> tuple[bool, float]:
+    if question.question_type in {"single_choice", "choice", "multiple_choice"}:
+        if selected_option_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="selected_option_id is required for choice questions.",
+            )
+        option = get_answer_option_or_404(selected_option_id, db)
+        if option.question_id != question.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Answer option does not belong to the question.",
+            )
+        return option.is_correct, question.score if option.is_correct else 0.0
+
+    correct_texts = {
+        normalize_text(option.text)
+        for option in question.answer_options
+        if option.is_correct
+    }
+    normalized_answer = normalize_text(text_answer)
+    is_correct = normalized_answer in correct_texts if normalized_answer else False
+    return is_correct, question.score if is_correct else 0.0
+
+
+@router.get("/api/tests/{test_id}/", response_model=TestRead)
+def retrieve_test(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Test:
+    _ = current_user
+    return get_test_or_404(test_id, db)
+
+
+@router.get("/api/tests/{test_id}/questions/", response_model=list[PublicQuestionRead])
+def list_test_questions(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Question]:
+    _ = current_user
+    test = get_test_or_404(test_id, db)
+    return list(
+        db.scalars(
+            select(Question)
+            .where(Question.test_id == test.id)
+            .options(selectinload(Question.answer_options))
+            .order_by(Question.order, Question.id)
+        )
+    )
+
+
+@router.post("/api/tests/{test_id}/start/", response_model=TestAttemptRead, status_code=status.HTTP_201_CREATED)
+def start_test_attempt(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TestAttempt:
+    test = get_test_or_404(test_id, db)
+    if not test.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test is inactive.")
+
+    total_attempts = len(
+        list(
+            db.scalars(
+                select(TestAttempt.id).where(
+                    TestAttempt.user_id == current_user.id,
+                    TestAttempt.test_id == test_id,
+                )
+            )
+        )
+    )
+
+    if total_attempts >= test.attempts_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No attempts left for this test.",
+        )
+
+    max_score = sum(
+        db.scalars(select(Question.score).where(Question.test_id == test_id)).all()
+    )
+    attempt = TestAttempt(user_id=current_user.id, test_id=test_id, max_score=max_score)
+    db.add(attempt)
+    db.commit()
+    db.refresh(attempt)
+    return attempt
+
+
+@router.post("/api/test-attempts/{attempt_id}/answers/", response_model=UserAnswerRead)
+def submit_answer(
+    attempt_id: int,
+    payload: UserAnswerCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserAnswer:
+    attempt = get_attempt_or_404(attempt_id, db)
+    ensure_attempt_access(attempt, current_user)
+    if attempt.finished_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Attempt is already finished.",
+        )
+
+    question = db.scalar(
+        select(Question)
+        .where(Question.id == payload.question_id, Question.test_id == attempt.test_id)
+        .options(selectinload(Question.answer_options))
+    )
+    if question is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Question does not belong to the test.",
+        )
+
+    is_correct, score_received = score_answer(
+        question=question,
+        selected_option_id=payload.selected_option_id,
+        text_answer=payload.text_answer,
+        db=db,
+    )
+
+    user_answer = db.scalar(
+        select(UserAnswer).where(
+            UserAnswer.attempt_id == attempt_id,
+            UserAnswer.question_id == payload.question_id,
+        )
+    )
+    if user_answer is None:
+        user_answer = UserAnswer(
+            attempt_id=attempt_id,
+            question_id=payload.question_id,
+        )
+        db.add(user_answer)
+
+    user_answer.selected_option_id = payload.selected_option_id
+    user_answer.text_answer = payload.text_answer
+    user_answer.is_correct = is_correct
+    user_answer.score_received = score_received
+    user_answer.answered_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(user_answer)
+    return user_answer
+
+
+@router.post("/api/test-attempts/{attempt_id}/finish/", response_model=TestAttemptRead)
+def finish_attempt(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TestAttempt:
+    attempt = get_attempt_or_404(attempt_id, db)
+    ensure_attempt_access(attempt, current_user)
+    if attempt.finished_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Attempt is already finished.",
+        )
+
+    questions = list(db.scalars(select(Question).where(Question.test_id == attempt.test_id)))
+    max_score = sum(question.score for question in questions)
+    answers = list(db.scalars(select(UserAnswer).where(UserAnswer.attempt_id == attempt_id)))
+    score = sum(answer.score_received for answer in answers)
+    percentage = (score / max_score * 100) if max_score else 0.0
+
+    attempt.score = score
+    attempt.max_score = max_score
+    attempt.percentage = round(percentage, 2)
+    attempt.is_passed = attempt.percentage >= attempt.test.passing_score
+    attempt.finished_at = datetime.now(timezone.utc)
+    if attempt.test.module_id is not None:
+        upsert_topic_result(db, attempt.user_id, attempt.test.module_id)
+    db.commit()
+    db.refresh(attempt)
+    return attempt
+
+
+@router.get("/api/test-attempts/{attempt_id}/result/", response_model=AttemptResultRead)
+def get_attempt_result(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AttemptResultRead:
+    attempt = get_attempt_or_404(attempt_id, db)
+    ensure_attempt_access(attempt, current_user)
+    answers = list(
+        db.scalars(select(UserAnswer).where(UserAnswer.attempt_id == attempt_id).order_by(UserAnswer.id))
+    )
+    return AttemptResultRead(
+        attempt=TestAttemptRead.model_validate(attempt),
+        answers=[UserAnswerRead.model_validate(answer) for answer in answers],
+    )
+
+
+@router.post("/api/tests/", response_model=TestRead, status_code=status.HTTP_201_CREATED)
+def create_test(
+    payload: TestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> Test:
+    _ = current_user
+    if db.get(Course, payload.course_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Course not found.")
+    if payload.module_id is not None and db.get(Module, payload.module_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Module not found.")
+    test = Test(**payload.model_dump())
+    db.add(test)
+    db.commit()
+    db.refresh(test)
+    return test
+
+
+@router.patch("/api/tests/{test_id}/", response_model=TestRead)
+def update_test(
+    test_id: int,
+    payload: TestUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> Test:
+    _ = current_user
+    test = get_test_or_404(test_id, db)
+    data = payload.model_dump(exclude_unset=True)
+    if "course_id" in data and db.get(Course, data["course_id"]) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Course not found.")
+    if "module_id" in data and data["module_id"] is not None and db.get(Module, data["module_id"]) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Module not found.")
+    for field, value in data.items():
+        setattr(test, field, value)
+    db.commit()
+    db.refresh(test)
+    return test
+
+
+@router.delete("/api/tests/{test_id}/", response_model=MessageRead)
+def delete_test(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> MessageRead:
+    _ = current_user
+    test = get_test_or_404(test_id, db)
+    db.delete(test)
+    db.commit()
+    return MessageRead(message="Test deleted.")
+
+
+@router.post("/api/questions/", response_model=QuestionRead, status_code=status.HTTP_201_CREATED)
+def create_question(
+    payload: QuestionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> Question:
+    _ = current_user
+    if db.get(Test, payload.test_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test not found.")
+    question = Question(**payload.model_dump())
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return db.scalar(
+        select(Question)
+        .where(Question.id == question.id)
+        .options(selectinload(Question.answer_options))
+    )
+
+
+@router.patch("/api/questions/{question_id}/", response_model=QuestionRead)
+def update_question(
+    question_id: int,
+    payload: QuestionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> Question:
+    _ = current_user
+    question = get_question_or_404(question_id, db)
+    data = payload.model_dump(exclude_unset=True)
+    if "test_id" in data and db.get(Test, data["test_id"]) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test not found.")
+    for field, value in data.items():
+        setattr(question, field, value)
+    db.commit()
+    return db.scalar(
+        select(Question)
+        .where(Question.id == question.id)
+        .options(selectinload(Question.answer_options))
+    )
+
+
+@router.delete("/api/questions/{question_id}/", response_model=MessageRead)
+def delete_question(
+    question_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> MessageRead:
+    _ = current_user
+    question = get_question_or_404(question_id, db)
+    db.delete(question)
+    db.commit()
+    return MessageRead(message="Question deleted.")
+
+
+@router.post("/api/answer-options/", response_model=AnswerOptionRead, status_code=status.HTTP_201_CREATED)
+def create_answer_option(
+    payload: AnswerOptionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> AnswerOption:
+    _ = current_user
+    if db.get(Question, payload.question_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question not found.")
+    answer_option = AnswerOption(**payload.model_dump())
+    db.add(answer_option)
+    db.commit()
+    db.refresh(answer_option)
+    return answer_option
+
+
+@router.patch("/api/answer-options/{option_id}/", response_model=AnswerOptionRead)
+def update_answer_option(
+    option_id: int,
+    payload: AnswerOptionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> AnswerOption:
+    _ = current_user
+    answer_option = get_answer_option_or_404(option_id, db)
+    data = payload.model_dump(exclude_unset=True)
+    if "question_id" in data and db.get(Question, data["question_id"]) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question not found.")
+    for field, value in data.items():
+        setattr(answer_option, field, value)
+    db.commit()
+    db.refresh(answer_option)
+    return answer_option
+
+
+@router.delete("/api/answer-options/{option_id}/", response_model=MessageRead)
+def delete_answer_option(
+    option_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> MessageRead:
+    _ = current_user
+    answer_option = get_answer_option_or_404(option_id, db)
+    db.delete(answer_option)
+    db.commit()
+    return MessageRead(message="Answer option deleted.")
