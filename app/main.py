@@ -10,6 +10,7 @@ from app.api.courses import router as courses_router
 from app.api.lessons import router as lessons_router
 from app.api.modules import router as modules_router
 from app.api.recommendations import router as recommendations_router
+from app.api.tasks import router as tasks_router
 from app.api.tests import router as tests_router
 from app.core.config import settings
 from app.db import Base, engine
@@ -27,6 +28,7 @@ app.include_router(auth_router)
 app.include_router(courses_router)
 app.include_router(modules_router)
 app.include_router(lessons_router)
+app.include_router(tasks_router)
 app.include_router(tests_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)

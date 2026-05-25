@@ -69,6 +69,13 @@
 - `max_score: float` - максимальный балл
 - `order: int` - порядок внутри модуля
 
+Схемы API:
+
+- `TaskCreate` - входная схема для создания задания
+- `TaskUpdate` - частичное обновление задания
+- `TaskRead` - публичная выдача задания без поля `correct_answer`
+- `TaskAdminRead` - служебная выдача для `teacher` и `admin`, включает `correct_answer`
+
 ### 6. `Test`
 
 - `id: int` - первичный ключ
@@ -192,6 +199,7 @@
 
 - `GET /api/modules/{module_id}/lessons/` - возвращает уроки модуля, если родительский курс опубликован
 - `GET /api/modules/{module_id}/tests/` - возвращает активные тесты модуля, если родительский курс опубликован
+- `GET /api/modules/{module_id}/tasks/` - возвращает задания модуля, если родительский курс опубликован; поле `correct_answer` скрыто
 - `GET /api/modules/{module_id}/progress/my/` - возвращает персональный прогресс пользователя по модулю
 - `GET /api/modules/{module_id}/topic-results/my/` - возвращает результаты пользователя по теме конкретного модуля
 - `GET /api/modules/{module_id}/recommendations/my/` - возвращает персональные рекомендации пользователя по модулю
@@ -206,6 +214,13 @@
 - `POST /api/lessons/` - создаёт урок; доступно `teacher` и `admin`
 - `PATCH /api/lessons/{lesson_id}/` - обновляет урок; доступно `teacher` и `admin`
 - `DELETE /api/lessons/{lesson_id}/` - удаляет урок; доступно `teacher` и `admin`
+
+### Задания (`/api/tasks`)
+
+- `GET /api/tasks/{task_id}/` - возвращает одно задание, если родительский курс опубликован; поле `correct_answer` скрыто
+- `POST /api/tasks/` - создаёт задание; доступно `teacher` и `admin`
+- `PATCH /api/tasks/{task_id}/` - обновляет задание; доступно `teacher` и `admin`
+- `DELETE /api/tasks/{task_id}/` - удаляет задание; доступно `teacher` и `admin`
 
 ### Тесты и попытки (`/api/tests`, `/api/test-attempts`, `/api/questions`, `/api/answer-options`)
 
@@ -248,8 +263,8 @@
 
 ## Что важно отметить по текущему состоянию
 
-- Модель `Task` уже существует в БД и ORM, но для неё сейчас нет отдельных API-эндпоинтов.
-- В `app/schemas.py` есть `TaskRead`, но нет `TaskCreate` и `TaskUpdate`, что подтверждает незавершённость CRUD для заданий.
+- Для `Task` теперь реализован отдельный CRUD-роутер с публичными маршрутами чтения и служебными маршрутами управления.
+- Публичная выдача заданий разделена со служебной: `correct_answer` исключён из `TaskRead` и остаётся только в `TaskAdminRead`.
 - Публичная выдача курсов и модулей завязана на `is_published` у курса.
 - Для преподавателей и администраторов используется проверка роли через `require_teacher_or_admin`.
 - Авторизация построена на `Bearer JWT`, `tokenUrl` настроен на `/api/auth/login/`.

@@ -132,6 +132,30 @@ class LessonProgressRead(BaseModel):
     completed_at: datetime | None = None
 
 
+class TaskCreate(BaseModel):
+    module_id: int
+    title: str
+    description: str
+    task_type: str | None = None
+    difficulty_level: str | None = None
+    correct_answer: str | None = None
+    explanation: str | None = None
+    max_score: float = 0
+    order: int = 0
+
+
+class TaskUpdate(BaseModel):
+    module_id: int | None = None
+    title: str | None = None
+    description: str | None = None
+    task_type: str | None = None
+    difficulty_level: str | None = None
+    correct_answer: str | None = None
+    explanation: str | None = None
+    max_score: float | None = None
+    order: int | None = None
+
+
 class TaskRead(ORMModel):
     id: int
     module_id: int
@@ -142,6 +166,10 @@ class TaskRead(ORMModel):
     explanation: str | None = None
     max_score: float
     order: int
+
+
+class TaskAdminRead(TaskRead):
+    correct_answer: str | None = None
 
 
 class TestCreate(BaseModel):
