@@ -1,0 +1,63 @@
+<section class="profile-page">
+  <article class="profile-hero">
+    <span class="profile-hero__badge">Личный профиль</span>
+    <h1>{{ fullName() }}</h1>
+    <p>Здесь собрана основная информация о пользователе и его учебном профиле.</p>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="profile-error" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="profile-state">Загрузка профиля...</div>
+  } @else if (user(); as currentUser) {
+    <article class="profile-card">
+      <div class="profile-card__grid">
+        <div class="profile-field">
+          <span>ФИО</span>
+          <strong>{{ fullName() }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Username</span>
+          <strong>{{ currentUser.username }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Email</span>
+          <strong>{{ currentUser.email || 'Не указан' }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Университет</span>
+          <strong>{{ currentUser.university || 'Не указан' }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Учебная группа</span>
+          <strong>{{ currentUser.group || 'Не указана' }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Курс обучения</span>
+          <strong>{{ currentUser.course_year || 'Не указан' }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Дата создания аккаунта</span>
+          <strong>{{ currentUser.created_at | date: 'dd.MM.yyyy HH:mm' }}</strong>
+        </div>
+
+        <div class="profile-field">
+          <span>Роль</span>
+          <strong>{{ currentUser.role }}</strong>
+        </div>
+      </div>
+
+      <button class="profile-card__logout" type="button" (click)="logout()">Выйти</button>
+    </article>
+  }
+</section>

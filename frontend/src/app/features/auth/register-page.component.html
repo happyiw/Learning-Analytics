@@ -1,0 +1,107 @@
+<section class="auth-layout">
+  <article class="auth-panel">
+    <span class="auth-panel__badge">Регистрация</span>
+    <h1>Создайте студенческий аккаунт за пару минут.</h1>
+    <p>
+      После регистрации пользователь получает роль <strong>student</strong>, а затем
+      автоматически попадает в свой профиль.
+    </p>
+
+    <div class="auth-panel__facts">
+      <div class="auth-panel__fact">
+        <strong>Быстрый старт</strong>
+        <span>Регистрация и автоматический вход проходят в едином сценарии.</span>
+      </div>
+      <div class="auth-panel__fact">
+        <strong>Учебные данные</strong>
+        <span>Можно сразу заполнить университет, группу и курс обучения.</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="auth-form-card">
+    <header class="auth-form-card__header">
+      <h2>Зарегистрироваться</h2>
+      <p>Заполните данные аккаунта и учебного профиля.</p>
+    </header>
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      @if (errorMessage()) {
+        <div class="auth-form__error" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="auth-form__grid">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" type="text" formControlName="username" autocomplete="username" />
+          @if (form.controls.username.touched && form.controls.username.invalid) {
+            <span class="field__error">Укажите username.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            autocomplete="new-password"
+          />
+          @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+            <span class="field__error">Укажите пароль.</span>
+          }
+          @if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+            <span class="field__error">Минимум 6 символов.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email" />
+          @if (form.controls.email.touched && form.controls.email.hasError('email')) {
+            <span class="field__error">Укажите корректный email.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="course_year">Course year</label>
+          <input id="course_year" type="number" formControlName="course_year" min="1" max="10" />
+          @if (form.controls.course_year.touched && form.controls.course_year.invalid) {
+            <span class="field__error">Введите значение от 1 до 10.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="first_name">First name</label>
+          <input id="first_name" type="text" formControlName="first_name" autocomplete="given-name" />
+        </div>
+
+        <div class="field">
+          <label for="last_name">Last name</label>
+          <input id="last_name" type="text" formControlName="last_name" autocomplete="family-name" />
+        </div>
+
+        <div class="field">
+          <label for="university">University</label>
+          <input id="university" type="text" formControlName="university" autocomplete="organization" />
+        </div>
+
+        <div class="field">
+          <label for="group">Group</label>
+          <input id="group" type="text" formControlName="group" />
+        </div>
+      </div>
+
+      <button class="auth-form__submit" type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Регистрация...' : 'Зарегистрироваться' }}
+      </button>
+
+      <p class="auth-form__footer">
+        Уже есть аккаунт?
+        <a routerLink="/login">Перейти ко входу</a>
+      </p>
+    </form>
+  </article>
+</section>

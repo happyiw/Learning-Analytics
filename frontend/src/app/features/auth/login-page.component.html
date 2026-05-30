@@ -1,0 +1,66 @@
+<section class="auth-layout">
+  <article class="auth-panel">
+    <span class="auth-panel__badge">Вход в систему</span>
+    <h1>Учёба, прогресс и аналитика в одном кабинете.</h1>
+    <p>
+      Войдите, чтобы открыть свой профиль, посмотреть учебные данные и продолжить
+      работу там, где остановились.
+    </p>
+
+    <div class="auth-panel__facts">
+      <div class="auth-panel__fact">
+        <strong>JWT-авторизация</strong>
+        <span>Безопасный вход с сохранением access token на клиенте.</span>
+      </div>
+      <div class="auth-panel__fact">
+        <strong>Профиль студента</strong>
+        <span>Контактные данные и учебная информация всегда под рукой.</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="auth-form-card">
+    <header class="auth-form-card__header">
+      <h2>Войти</h2>
+      <p>Введите логин и пароль от своего аккаунта.</p>
+    </header>
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      @if (errorMessage()) {
+        <div class="auth-form__error" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" type="text" formControlName="username" autocomplete="username" />
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+          <span class="field__error">Укажите username.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field__error">Укажите пароль.</span>
+        }
+      </div>
+
+      <button class="auth-form__submit" type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Вход...' : 'Войти' }}
+      </button>
+
+      <p class="auth-form__footer">
+        Нет аккаунта?
+        <a routerLink="/register">Перейти к регистрации</a>
+      </p>
+    </form>
+  </article>
+</section>

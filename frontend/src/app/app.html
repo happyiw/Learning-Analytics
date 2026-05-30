@@ -1,0 +1,41 @@
+<div class="app-shell">
+  <div class="app-shell__glow app-shell__glow--left" aria-hidden="true"></div>
+  <div class="app-shell__glow app-shell__glow--right" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" routerLink="/">
+        <span class="brand__eyebrow">Learning Analytics</span>
+        <span class="brand__title">Учебный кабинет</span>
+      </a>
+
+      @if (!authService.isAuthenticated()) {
+        <nav class="site-nav" aria-label="Основная навигация">
+          <a class="site-nav__link" routerLink="/login" routerLinkActive="site-nav__link--active">
+            Вход
+          </a>
+          <a
+            class="site-nav__link site-nav__link--button"
+            routerLink="/register"
+            routerLinkActive="site-nav__link--active"
+          >
+            Регистрация
+          </a>
+        </nav>
+      }
+    </div>
+  </header>
+
+  <main class="site-main">
+    <div class="site-main__inner">
+      <router-outlet />
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <p>Платформа для учебной аналитики и персонального прогресса.</p>
+      <p>Angular frontend + FastAPI backend.</p>
+    </div>
+  </footer>
+</div>
