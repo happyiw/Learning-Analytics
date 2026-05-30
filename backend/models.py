@@ -1,0 +1,278 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from backend.db import Base
+
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    role: Mapped[str] = mapped_column(String(50), default="student")
+    university: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    group: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    course_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    authored_courses: Mapped[list["Course"]] = relationship(back_populates="author")
+    test_attempts: Mapped[list["TestAttempt"]] = relationship(back_populates="user")
+    lesson_progress_entries: Mapped[list["LessonProgress"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    topic_results: Mapped[list["TopicResult"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255), index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+    author: Mapped[User | None] = relationship(back_populates="authored_courses")
+    modules: Mapped[list["Module"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
+    tests: Mapped[list["Test"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
+
+
+class Module(Base):
+    __tablename__ = "modules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+
+    course: Mapped[Course] = relationship(back_populates="modules")
+    lessons: Mapped[list["Lesson"]] = relationship(
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
+    tasks: Mapped[list["Task"]] = relationship(
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
+    tests: Mapped[list["Test"]] = relationship(back_populates="module")
+    topic_results: Mapped[list["TopicResult"]] = relationship(
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
+    recommendations: Mapped[list["Recommendation"]] = relationship(
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
+
+
+class Lesson(Base):
+    __tablename__ = "lessons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+    video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    module: Mapped[Module] = relationship(back_populates="lessons")
+    progress_entries: Mapped[list["LessonProgress"]] = relationship(
+        back_populates="lesson",
+        cascade="all, delete-orphan",
+    )
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    task_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    correct_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    max_score: Mapped[float] = mapped_column(Float, default=0)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+
+    module: Mapped[Module] = relationship(back_populates="tasks")
+
+
+class Test(Base):
+    __tablename__ = "tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
+    module_id: Mapped[int | None] = mapped_column(ForeignKey("modules.id"), nullable=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    time_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    passing_score: Mapped[float] = mapped_column(Float, default=60)
+    attempts_allowed: Mapped[int] = mapped_column(Integer, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    course: Mapped[Course] = relationship(back_populates="tests")
+    module: Mapped[Module | None] = relationship(back_populates="tests")
+    questions: Mapped[list["Question"]] = relationship(
+        back_populates="test",
+        cascade="all, delete-orphan",
+    )
+    attempts: Mapped[list["TestAttempt"]] = relationship(
+        back_populates="test",
+        cascade="all, delete-orphan",
+    )
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), index=True)
+    text: Mapped[str] = mapped_column(Text)
+    question_type: Mapped[str] = mapped_column(String(50), default="single_choice")
+    difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    score: Mapped[float] = mapped_column(Float, default=1)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+
+    test: Mapped[Test] = relationship(back_populates="questions")
+    answer_options: Mapped[list["AnswerOption"]] = relationship(
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
+    user_answers: Mapped[list["UserAnswer"]] = relationship(back_populates="question")
+
+
+class AnswerOption(Base):
+    __tablename__ = "answer_options"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"), index=True)
+    text: Mapped[str] = mapped_column(Text)
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    question: Mapped[Question] = relationship(back_populates="answer_options")
+    user_answers: Mapped[list["UserAnswer"]] = relationship(back_populates="selected_option")
+
+
+class TestAttempt(Base):
+    __tablename__ = "test_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    score: Mapped[float] = mapped_column(Float, default=0)
+    max_score: Mapped[float] = mapped_column(Float, default=0)
+    percentage: Mapped[float] = mapped_column(Float, default=0)
+    is_passed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    user: Mapped[User] = relationship(back_populates="test_attempts")
+    test: Mapped[Test] = relationship(back_populates="attempts")
+    answers: Mapped[list["UserAnswer"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserAnswer(Base):
+    __tablename__ = "user_answers"
+    __table_args__ = (UniqueConstraint("attempt_id", "question_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("test_attempts.id"), index=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"), index=True)
+    selected_option_id: Mapped[int | None] = mapped_column(
+        ForeignKey("answer_options.id"),
+        nullable=True,
+    )
+    text_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+    score_received: Mapped[float] = mapped_column(Float, default=0)
+    answered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    attempt: Mapped[TestAttempt] = relationship(back_populates="answers")
+    question: Mapped[Question] = relationship(back_populates="user_answers")
+    selected_option: Mapped[AnswerOption | None] = relationship(back_populates="user_answers")
+
+
+class LessonProgress(Base):
+    __tablename__ = "lesson_progress"
+    __table_args__ = (UniqueConstraint("user_id", "lesson_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id"), index=True)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="lesson_progress_entries")
+    lesson: Mapped[Lesson] = relationship(back_populates="progress_entries")
+
+
+class TopicResult(Base):
+    __tablename__ = "topic_results"
+    __table_args__ = (UniqueConstraint("user_id", "module_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    attempts_count: Mapped[int] = mapped_column(Integer, default=0)
+    average_percentage: Mapped[float] = mapped_column(Float, default=0)
+    best_percentage: Mapped[float] = mapped_column(Float, default=0)
+    weakness_level: Mapped[str] = mapped_column(String(50), default="high")
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+    user: Mapped[User] = relationship(back_populates="topic_results")
+    module: Mapped[Module] = relationship(back_populates="topic_results")
+
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    resource_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    trigger_score_threshold: Mapped[float] = mapped_column(Float, default=60)
+
+    module: Mapped[Module] = relationship(back_populates="recommendations")

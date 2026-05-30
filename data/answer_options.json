@@ -1,0 +1,962 @@
+[
+  {
+    "id": 1,
+    "question_id": 1,
+    "text": "Сеть интеллектуальных объектов, способных собирать данные и обмениваться ими",
+    "is_correct": true
+  },
+  {
+    "id": 2,
+    "question_id": 1,
+    "text": "Только сеть персональных компьютеров",
+    "is_correct": false
+  },
+  {
+    "id": 3,
+    "question_id": 1,
+    "text": "Любая локальная сеть без датчиков",
+    "is_correct": false
+  },
+  {
+    "id": 4,
+    "question_id": 1,
+    "text": "Система хранения файлов в облаке",
+    "is_correct": false
+  },
+  {
+    "id": 5,
+    "question_id": 2,
+    "text": "Датчик",
+    "is_correct": true
+  },
+  {
+    "id": 6,
+    "question_id": 2,
+    "text": "Исполнительный механизм",
+    "is_correct": false
+  },
+  {
+    "id": 7,
+    "question_id": 2,
+    "text": "Пользовательский интерфейс",
+    "is_correct": false
+  },
+  {
+    "id": 8,
+    "question_id": 2,
+    "text": "Система оплаты",
+    "is_correct": false
+  },
+  {
+    "id": 9,
+    "question_id": 3,
+    "text": "Преобразует управляющий сигнал в физическое действие",
+    "is_correct": true
+  },
+  {
+    "id": 10,
+    "question_id": 3,
+    "text": "Только хранит архивные данные",
+    "is_correct": false
+  },
+  {
+    "id": 11,
+    "question_id": 3,
+    "text": "Определяет юридическую ответственность",
+    "is_correct": false
+  },
+  {
+    "id": 12,
+    "question_id": 3,
+    "text": "Заменяет сетевой протокол",
+    "is_correct": false
+  },
+  {
+    "id": 13,
+    "question_id": 4,
+    "text": "Удаленный мониторинг состояния пациента",
+    "is_correct": true
+  },
+  {
+    "id": 14,
+    "question_id": 4,
+    "text": "Сортировка бумажных документов",
+    "is_correct": false
+  },
+  {
+    "id": 15,
+    "question_id": 4,
+    "text": "Ручной подсчет посетителей",
+    "is_correct": false
+  },
+  {
+    "id": 16,
+    "question_id": 4,
+    "text": "Обычный текстовый редактор",
+    "is_correct": false
+  },
+  {
+    "id": 17,
+    "question_id": 5,
+    "text": "Применением в промышленных и критически важных процессах",
+    "is_correct": true
+  },
+  {
+    "id": 18,
+    "question_id": 5,
+    "text": "Полным отсутствием сетей",
+    "is_correct": false
+  },
+  {
+    "id": 19,
+    "question_id": 5,
+    "text": "Использованием только смартфонов",
+    "is_correct": false
+  },
+  {
+    "id": 20,
+    "question_id": 5,
+    "text": "Запретом на сбор данных",
+    "is_correct": false
+  },
+  {
+    "id": 21,
+    "question_id": 6,
+    "text": "Коммуникационная инфраструктура",
+    "is_correct": true
+  },
+  {
+    "id": 22,
+    "question_id": 6,
+    "text": "Только монитор пользователя",
+    "is_correct": false
+  },
+  {
+    "id": 23,
+    "question_id": 6,
+    "text": "Печатное руководство",
+    "is_correct": false
+  },
+  {
+    "id": 24,
+    "question_id": 6,
+    "text": "Изолированный аккумулятор",
+    "is_correct": false
+  },
+  {
+    "id": 25,
+    "question_id": 7,
+    "text": "Разные устройства могут использовать разные стандарты, протоколы и платформы",
+    "is_correct": true
+  },
+  {
+    "id": 26,
+    "question_id": 7,
+    "text": "Все устройства всегда производятся одной компанией",
+    "is_correct": false
+  },
+  {
+    "id": 27,
+    "question_id": 7,
+    "text": "IoT не использует передачу данных",
+    "is_correct": false
+  },
+  {
+    "id": 28,
+    "question_id": 7,
+    "text": "Совместимость влияет только на дизайн корпуса",
+    "is_correct": false
+  },
+  {
+    "id": 29,
+    "question_id": 8,
+    "text": "Система включает вентиляцию при превышении порога температуры",
+    "is_correct": true
+  },
+  {
+    "id": 30,
+    "question_id": 8,
+    "text": "Пользователь вручную переписывает данные из тетради",
+    "is_correct": false
+  },
+  {
+    "id": 31,
+    "question_id": 8,
+    "text": "Датчик отключен от сети",
+    "is_correct": false
+  },
+  {
+    "id": 32,
+    "question_id": 8,
+    "text": "Устройство не имеет программного обеспечения",
+    "is_correct": false
+  },
+  {
+    "id": 33,
+    "question_id": 9,
+    "text": "RFID",
+    "is_correct": true
+  },
+  {
+    "id": 34,
+    "question_id": 9,
+    "text": "CRT",
+    "is_correct": false
+  },
+  {
+    "id": 35,
+    "question_id": 9,
+    "text": "FTP как единственный вариант",
+    "is_correct": false
+  },
+  {
+    "id": 36,
+    "question_id": 9,
+    "text": "PNG",
+    "is_correct": false
+  },
+  {
+    "id": 37,
+    "question_id": 10,
+    "text": "Конфиденциальность",
+    "is_correct": true
+  },
+  {
+    "id": 38,
+    "question_id": 10,
+    "text": "Цвет корпуса устройства",
+    "is_correct": false
+  },
+  {
+    "id": 39,
+    "question_id": 10,
+    "text": "Размер упаковки",
+    "is_correct": false
+  },
+  {
+    "id": 40,
+    "question_id": 10,
+    "text": "Название производителя",
+    "is_correct": false
+  },
+  {
+    "id": 41,
+    "question_id": 11,
+    "text": "Вредоносное ПО",
+    "is_correct": true
+  },
+  {
+    "id": 42,
+    "question_id": 11,
+    "text": "Стихийное бедствие",
+    "is_correct": false
+  },
+  {
+    "id": 43,
+    "question_id": 11,
+    "text": "Естественный износ батареи",
+    "is_correct": false
+  },
+  {
+    "id": 44,
+    "question_id": 11,
+    "text": "Случайная потеря питания",
+    "is_correct": false
+  },
+  {
+    "id": 45,
+    "question_id": 12,
+    "text": "Атака, при которой множество систем перегружают цель запросами",
+    "is_correct": true
+  },
+  {
+    "id": 46,
+    "question_id": 12,
+    "text": "Формат резервного копирования",
+    "is_correct": false
+  },
+  {
+    "id": 47,
+    "question_id": 12,
+    "text": "Способ физической маркировки товара",
+    "is_correct": false
+  },
+  {
+    "id": 48,
+    "question_id": 12,
+    "text": "Метод снижения энергопотребления",
+    "is_correct": false
+  },
+  {
+    "id": 49,
+    "question_id": 13,
+    "text": "Перехват информации",
+    "is_correct": true
+  },
+  {
+    "id": 50,
+    "question_id": 13,
+    "text": "Катастрофа",
+    "is_correct": false
+  },
+  {
+    "id": 51,
+    "question_id": 13,
+    "text": "Физическое уничтожение",
+    "is_correct": false
+  },
+  {
+    "id": 52,
+    "question_id": 13,
+    "text": "Плановое обслуживание",
+    "is_correct": false
+  },
+  {
+    "id": 53,
+    "question_id": 14,
+    "text": "Слабые или стандартные пароли",
+    "is_correct": true
+  },
+  {
+    "id": 54,
+    "question_id": 14,
+    "text": "Избыточная бумажная документация",
+    "is_correct": false
+  },
+  {
+    "id": 55,
+    "question_id": 14,
+    "text": "Отсутствие датчиков температуры везде",
+    "is_correct": false
+  },
+  {
+    "id": 56,
+    "question_id": 14,
+    "text": "Большой размер экрана",
+    "is_correct": false
+  },
+  {
+    "id": 57,
+    "question_id": 15,
+    "text": "Устройство, контроль над которым частично или полностью получил злоумышленник",
+    "is_correct": true
+  },
+  {
+    "id": 58,
+    "question_id": 15,
+    "text": "Устройство с новой заводской упаковкой",
+    "is_correct": false
+  },
+  {
+    "id": 59,
+    "question_id": 15,
+    "text": "Устройство без сетевого адаптера",
+    "is_correct": false
+  },
+  {
+    "id": 60,
+    "question_id": 15,
+    "text": "Устройство, не подключенное к питанию",
+    "is_correct": false
+  },
+  {
+    "id": 61,
+    "question_id": 16,
+    "text": "Инциденты могут нарушать производственные и физические процессы",
+    "is_correct": true
+  },
+  {
+    "id": 62,
+    "question_id": 16,
+    "text": "IIoT не использует данные",
+    "is_correct": false
+  },
+  {
+    "id": 63,
+    "question_id": 16,
+    "text": "В промышленности нет пользователей",
+    "is_correct": false
+  },
+  {
+    "id": 64,
+    "question_id": 16,
+    "text": "IIoT всегда работает только офлайн",
+    "is_correct": false
+  },
+  {
+    "id": 65,
+    "question_id": 17,
+    "text": "Конвергенция IT и OT",
+    "is_correct": true
+  },
+  {
+    "id": 66,
+    "question_id": 17,
+    "text": "Полное отсутствие оборудования",
+    "is_correct": false
+  },
+  {
+    "id": 67,
+    "question_id": 17,
+    "text": "Запрет на мониторинг",
+    "is_correct": false
+  },
+  {
+    "id": 68,
+    "question_id": 17,
+    "text": "Невозможность работы с датчиками",
+    "is_correct": false
+  },
+  {
+    "id": 69,
+    "question_id": 18,
+    "text": "Попытка подобрать пароль перебором вариантов",
+    "is_correct": true
+  },
+  {
+    "id": 70,
+    "question_id": 18,
+    "text": "Случайный сбой электропитания",
+    "is_correct": false
+  },
+  {
+    "id": 71,
+    "question_id": 18,
+    "text": "Обновление прошивки",
+    "is_correct": false
+  },
+  {
+    "id": 72,
+    "question_id": 18,
+    "text": "Резервное копирование данных",
+    "is_correct": false
+  },
+  {
+    "id": 73,
+    "question_id": 19,
+    "text": "Кража или вандализм устройства",
+    "is_correct": true
+  },
+  {
+    "id": 74,
+    "question_id": 19,
+    "text": "Перехват сетевого пакета",
+    "is_correct": false
+  },
+  {
+    "id": 75,
+    "question_id": 19,
+    "text": "Ошибка в интерфейсе приложения",
+    "is_correct": false
+  },
+  {
+    "id": 76,
+    "question_id": 19,
+    "text": "Задержка обновления документации",
+    "is_correct": false
+  },
+  {
+    "id": 77,
+    "question_id": 20,
+    "text": "Изменение показаний датчика перед передачей в систему управления",
+    "is_correct": true
+  },
+  {
+    "id": 78,
+    "question_id": 20,
+    "text": "Плановая замена кабеля",
+    "is_correct": false
+  },
+  {
+    "id": 79,
+    "question_id": 20,
+    "text": "Покупка нового устройства",
+    "is_correct": false
+  },
+  {
+    "id": 80,
+    "question_id": 20,
+    "text": "Чтение инструкции пользователем",
+    "is_correct": false
+  },
+  {
+    "id": 81,
+    "question_id": 21,
+    "text": "Они могут хранить сообщения, данные активности, контакты и временные метки",
+    "is_correct": true
+  },
+  {
+    "id": 82,
+    "question_id": 21,
+    "text": "Они не способны хранить никаких данных",
+    "is_correct": false
+  },
+  {
+    "id": 83,
+    "question_id": 21,
+    "text": "Они используются только как механические часы",
+    "is_correct": false
+  },
+  {
+    "id": 84,
+    "question_id": 21,
+    "text": "Они не взаимодействуют со смартфоном",
+    "is_correct": false
+  },
+  {
+    "id": 85,
+    "question_id": 22,
+    "text": "Данные о сердечном ритме и местоположении",
+    "is_correct": true
+  },
+  {
+    "id": 86,
+    "question_id": 22,
+    "text": "Цвет ремешка",
+    "is_correct": false
+  },
+  {
+    "id": 87,
+    "question_id": 22,
+    "text": "Название магазина",
+    "is_correct": false
+  },
+  {
+    "id": 88,
+    "question_id": 22,
+    "text": "Размер коробки",
+    "is_correct": false
+  },
+  {
+    "id": 89,
+    "question_id": 23,
+    "text": "Повышение безопасности движения и управление транспортными потоками",
+    "is_correct": true
+  },
+  {
+    "id": 90,
+    "question_id": 23,
+    "text": "Замена всех дорог бумажными схемами",
+    "is_correct": false
+  },
+  {
+    "id": 91,
+    "question_id": 23,
+    "text": "Отключение всех светофоров",
+    "is_correct": false
+  },
+  {
+    "id": 92,
+    "question_id": 23,
+    "text": "Удаление данных о трафике",
+    "is_correct": false
+  },
+  {
+    "id": 93,
+    "question_id": 24,
+    "text": "Неверное управление светофорами и рост аварийных рисков",
+    "is_correct": true
+  },
+  {
+    "id": 94,
+    "question_id": 24,
+    "text": "Улучшение конфиденциальности",
+    "is_correct": false
+  },
+  {
+    "id": 95,
+    "question_id": 24,
+    "text": "Автоматическое исправление всех ошибок",
+    "is_correct": false
+  },
+  {
+    "id": 96,
+    "question_id": 24,
+    "text": "Полное отключение угроз",
+    "is_correct": false
+  },
+  {
+    "id": 97,
+    "question_id": 25,
+    "text": "Устройства, сети, приложения и облачные сервисы",
+    "is_correct": true
+  },
+  {
+    "id": 98,
+    "question_id": 25,
+    "text": "Только бумажные документы",
+    "is_correct": false
+  },
+  {
+    "id": 99,
+    "question_id": 25,
+    "text": "Только экран монитора",
+    "is_correct": false
+  },
+  {
+    "id": 100,
+    "question_id": 25,
+    "text": "Только кабель питания",
+    "is_correct": false
+  },
+  {
+    "id": 101,
+    "question_id": 26,
+    "text": "Риск нарушения конфиденциальности третьих лиц",
+    "is_correct": true
+  },
+  {
+    "id": 102,
+    "question_id": 26,
+    "text": "Полное отсутствие данных",
+    "is_correct": false
+  },
+  {
+    "id": 103,
+    "question_id": 26,
+    "text": "Запрет на использование времени",
+    "is_correct": false
+  },
+  {
+    "id": 104,
+    "question_id": 26,
+    "text": "Невозможность шифрования",
+    "is_correct": false
+  },
+  {
+    "id": 105,
+    "question_id": 27,
+    "text": "Атака на датчики",
+    "is_correct": true
+  },
+  {
+    "id": 106,
+    "question_id": 27,
+    "text": "Стихийное бедствие",
+    "is_correct": false
+  },
+  {
+    "id": 107,
+    "question_id": 27,
+    "text": "Плановое обслуживание",
+    "is_correct": false
+  },
+  {
+    "id": 108,
+    "question_id": 27,
+    "text": "Обучение персонала",
+    "is_correct": false
+  },
+  {
+    "id": 109,
+    "question_id": 28,
+    "text": "Для проведения DDoS-атак на внешние цели",
+    "is_correct": true
+  },
+  {
+    "id": 110,
+    "question_id": 28,
+    "text": "Для улучшения пользовательского интерфейса",
+    "is_correct": false
+  },
+  {
+    "id": 111,
+    "question_id": 28,
+    "text": "Для легального обновления устройств",
+    "is_correct": false
+  },
+  {
+    "id": 112,
+    "question_id": 28,
+    "text": "Для уменьшения площади атаки",
+    "is_correct": false
+  },
+  {
+    "id": 113,
+    "question_id": 29,
+    "text": "Попытка получить контроль над управлением устройствами или средой IoT",
+    "is_correct": true
+  },
+  {
+    "id": 114,
+    "question_id": 29,
+    "text": "Очистка журнала после планового обслуживания",
+    "is_correct": false
+  },
+  {
+    "id": 115,
+    "question_id": 29,
+    "text": "Создание инструкции для пользователя",
+    "is_correct": false
+  },
+  {
+    "id": 116,
+    "question_id": 29,
+    "text": "Отключение устройства от упаковки",
+    "is_correct": false
+  },
+  {
+    "id": 117,
+    "question_id": 30,
+    "text": "Допустимые ранее команды могут быть повторно использованы для манипуляции устройством",
+    "is_correct": true
+  },
+  {
+    "id": 118,
+    "question_id": 30,
+    "text": "Он всегда повышает скорость сети",
+    "is_correct": false
+  },
+  {
+    "id": 119,
+    "question_id": 30,
+    "text": "Он удаляет все уязвимости",
+    "is_correct": false
+  },
+  {
+    "id": 120,
+    "question_id": 30,
+    "text": "Он не влияет на физические процессы",
+    "is_correct": false
+  },
+  {
+    "id": 121,
+    "question_id": 31,
+    "text": "Учет безопасности на этапе проектирования устройства или системы",
+    "is_correct": true
+  },
+  {
+    "id": 122,
+    "question_id": 31,
+    "text": "Добавление защиты только после инцидента",
+    "is_correct": false
+  },
+  {
+    "id": 123,
+    "question_id": 31,
+    "text": "Отказ от обновлений",
+    "is_correct": false
+  },
+  {
+    "id": 124,
+    "question_id": 31,
+    "text": "Использование одинаковых паролей",
+    "is_correct": false
+  },
+  {
+    "id": 125,
+    "question_id": 32,
+    "text": "Назначение ответственных за безопасность и реагирование на инциденты",
+    "is_correct": true
+  },
+  {
+    "id": 126,
+    "question_id": 32,
+    "text": "Шифрование сетевого канала",
+    "is_correct": false
+  },
+  {
+    "id": 127,
+    "question_id": 32,
+    "text": "Сегментация сети",
+    "is_correct": false
+  },
+  {
+    "id": 128,
+    "question_id": 32,
+    "text": "Многофакторная аутентификация",
+    "is_correct": false
+  },
+  {
+    "id": 129,
+    "question_id": 33,
+    "text": "Аутентификация устройств и пользователей",
+    "is_correct": true
+  },
+  {
+    "id": 130,
+    "question_id": 33,
+    "text": "Обучение сотрудников",
+    "is_correct": false
+  },
+  {
+    "id": 131,
+    "question_id": 33,
+    "text": "Разработка политики безопасности",
+    "is_correct": false
+  },
+  {
+    "id": 132,
+    "question_id": 33,
+    "text": "Договор с поставщиком",
+    "is_correct": false
+  },
+  {
+    "id": 133,
+    "question_id": 34,
+    "text": "Чтобы исправлять уязвимости в течение жизненного цикла",
+    "is_correct": true
+  },
+  {
+    "id": 134,
+    "question_id": 34,
+    "text": "Чтобы менять цвет корпуса",
+    "is_correct": false
+  },
+  {
+    "id": 135,
+    "question_id": 34,
+    "text": "Чтобы отключить все датчики",
+    "is_correct": false
+  },
+  {
+    "id": 136,
+    "question_id": 34,
+    "text": "Чтобы удалить журнал событий",
+    "is_correct": false
+  },
+  {
+    "id": 137,
+    "question_id": 35,
+    "text": "Ограничивает распространение атаки между частями инфраструктуры",
+    "is_correct": true
+  },
+  {
+    "id": 138,
+    "question_id": 35,
+    "text": "Увеличивает число стандартных паролей",
+    "is_correct": false
+  },
+  {
+    "id": 139,
+    "question_id": 35,
+    "text": "Запрещает мониторинг",
+    "is_correct": false
+  },
+  {
+    "id": 140,
+    "question_id": 35,
+    "text": "Заменяет все организационные меры",
+    "is_correct": false
+  },
+  {
+    "id": 141,
+    "question_id": 36,
+    "text": "Сложные пароли, ограничение попыток входа и многофакторная аутентификация",
+    "is_correct": true
+  },
+  {
+    "id": 142,
+    "question_id": 36,
+    "text": "Использование паролей по умолчанию",
+    "is_correct": false
+  },
+  {
+    "id": 143,
+    "question_id": 36,
+    "text": "Публикация пароля в инструкции",
+    "is_correct": false
+  },
+  {
+    "id": 144,
+    "question_id": 36,
+    "text": "Отключение журналирования",
+    "is_correct": false
+  },
+  {
+    "id": 145,
+    "question_id": 37,
+    "text": "Безопасное удаление данных и отзыв учетных данных",
+    "is_correct": true
+  },
+  {
+    "id": 146,
+    "question_id": 37,
+    "text": "Передача устройства без очистки",
+    "is_correct": false
+  },
+  {
+    "id": 147,
+    "question_id": 37,
+    "text": "Оставление старых ключей доступа",
+    "is_correct": false
+  },
+  {
+    "id": 148,
+    "question_id": 37,
+    "text": "Отключение всех процедур учета",
+    "is_correct": false
+  },
+  {
+    "id": 149,
+    "question_id": 38,
+    "text": "Ошибки сотрудников могут привести к неправильной конфигурации и инцидентам",
+    "is_correct": true
+  },
+  {
+    "id": 150,
+    "question_id": 38,
+    "text": "Персонал не взаимодействует с системами",
+    "is_correct": false
+  },
+  {
+    "id": 151,
+    "question_id": 38,
+    "text": "Обучение заменяет все технические меры",
+    "is_correct": false
+  },
+  {
+    "id": 152,
+    "question_id": 38,
+    "text": "Оно нужно только для дизайна интерфейса",
+    "is_correct": false
+  },
+  {
+    "id": 153,
+    "question_id": 39,
+    "text": "Журналирование и мониторинг событий",
+    "is_correct": true
+  },
+  {
+    "id": 154,
+    "question_id": 39,
+    "text": "Отсутствие логов",
+    "is_correct": false
+  },
+  {
+    "id": 155,
+    "question_id": 39,
+    "text": "Одинаковые учетные записи",
+    "is_correct": false
+  },
+  {
+    "id": 156,
+    "question_id": 39,
+    "text": "Удаление сетевой сегментации",
+    "is_correct": false
+  },
+  {
+    "id": 157,
+    "question_id": 40,
+    "text": "Управление доступом, обновления, мониторинг, сегментация, шифрование и политика безопасности",
+    "is_correct": true
+  },
+  {
+    "id": 158,
+    "question_id": 40,
+    "text": "Только покупка новых устройств",
+    "is_correct": false
+  },
+  {
+    "id": 159,
+    "question_id": 40,
+    "text": "Только визуальный осмотр корпуса",
+    "is_correct": false
+  },
+  {
+    "id": 160,
+    "question_id": 40,
+    "text": "Только запрет пользователям читать инструкции",
+    "is_correct": false
+  }
+]

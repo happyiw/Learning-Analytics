@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "course_id": 1,
+    "module_id": 1,
+    "title": "Тест 1. Основы IoT",
+    "description": "Проверка базовых понятий Интернета вещей, состава экосистемы и областей применения.",
+    "time_limit": 20,
+    "passing_score": 60.0,
+    "attempts_allowed": 3,
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "course_id": 1,
+    "module_id": 2,
+    "title": "Тест 2. Угрозы IoT и IIoT",
+    "description": "Проверка понимания классификации угроз и проблем безопасности IoT/IIoT.",
+    "time_limit": 25,
+    "passing_score": 65.0,
+    "attempts_allowed": 3,
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "course_id": 1,
+    "module_id": 3,
+    "title": "Тест 3. Сценарии атак и цифровая экспертиза",
+    "description": "Проверка анализа практических сценариев атак, цифровых доказательств и транспортных IoT-систем.",
+    "time_limit": 25,
+    "passing_score": 70.0,
+    "attempts_allowed": 3,
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "course_id": 1,
+    "module_id": 4,
+    "title": "Тест 4. Меры защиты IoT",
+    "description": "Проверка знания организационных и технических мер защиты IoT-устройств.",
+    "time_limit": 25,
+    "passing_score": 70.0,
+    "attempts_allowed": 3,
+    "is_active": true
+  }
+]

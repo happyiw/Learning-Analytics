@@ -1,0 +1,2204 @@
+{
+  "info": {
+    "_postman_id": "2a757c31-cf70-4c6b-8c26-0a9c1a2fd2ef",
+    "name": "Learning Analytics Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "openai-codex"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Setup And Auth",
+      "item": [
+        {
+          "name": "Initialize Dynamic Variables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Root endpoint is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const runId = Date.now().toString();",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('teacherUsername', `teacher_${runId}`);",
+                  "pm.collectionVariables.set('teacherPassword', 'TeacherPass123!');",
+                  "pm.collectionVariables.set('teacherEmail', `teacher_${runId}@example.com`);",
+                  "pm.collectionVariables.set('studentUsername', `student_${runId}`);",
+                  "pm.collectionVariables.set('studentPassword', 'StudentPass123!');",
+                  "pm.collectionVariables.set('studentEmail', `student_${runId}@example.com`);",
+                  "pm.collectionVariables.set('studentGroup', `IS-${runId.slice(-4)}`);",
+                  "pm.collectionVariables.set('courseTitle', `API Course ${runId}`);",
+                  "pm.collectionVariables.set('courseUpdatedTitle', `API Course Updated ${runId}`);",
+                  "pm.collectionVariables.set('moduleTitle', `Module ${runId}`);",
+                  "pm.collectionVariables.set('moduleUpdatedTitle', `Module Updated ${runId}`);",
+                  "pm.collectionVariables.set('lessonTitle', `Lesson ${runId}`);",
+                  "pm.collectionVariables.set('lessonUpdatedTitle', `Lesson Updated ${runId}`);",
+                  "pm.collectionVariables.set('taskTitle', `Task ${runId}`);",
+                  "pm.collectionVariables.set('taskUpdatedTitle', `Task Updated ${runId}`);",
+                  "pm.collectionVariables.set('testTitle', `Test ${runId}`);",
+                  "pm.collectionVariables.set('testUpdatedTitle', `Test Updated ${runId}`);",
+                  "pm.collectionVariables.set('questionText', `What is the safest choice? ${runId}`);",
+                  "pm.collectionVariables.set('questionUpdatedText', `What is the safest updated choice? ${runId}`);",
+                  "pm.collectionVariables.set('correctOptionText', `Correct option ${runId}`);",
+                  "pm.collectionVariables.set('correctOptionUpdatedText', `Correct option updated ${runId}`);",
+                  "pm.collectionVariables.set('wrongOptionText', `Wrong option ${runId}`);",
+                  "pm.collectionVariables.set('recommendationTitle', `Recommendation ${runId}`);",
+                  "pm.collectionVariables.set('recommendationUpdatedTitle', `Recommendation Updated ${runId}`);",
+                  "pm.collectionVariables.set('recommendationResourceUrl', 'https://example.com/security-guide');",
+                  "",
+                  "[",
+                  "    'teacherId',",
+                  "    'studentId',",
+                  "    'teacherAccessToken',",
+                  "    'studentAccessToken',",
+                  "    'courseId',",
+                  "    'moduleId',",
+                  "    'lessonId',",
+                  "    'taskId',",
+                  "    'recommendationId',",
+                  "    'testId',",
+                  "    'questionId',",
+                  "    'correctOptionId',",
+                  "    'wrongOptionId',",
+                  "    'attemptId',",
+                  "    'attemptPercentage'",
+                  "].forEach(function (key) {",
+                  "    pm.collectionVariables.unset(key);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Teacher registration succeeded', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Teacher role is correct', function () {",
+                  "    pm.expect(json.role).to.eql('teacher');",
+                  "});",
+                  "pm.collectionVariables.set('teacherId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\",\n  \"email\": \"{{teacherEmail}}\",\n  \"first_name\": \"Teacher\",\n  \"last_name\": \"Runner\",\n  \"role\": \"teacher\",\n  \"university\": \"Test University\",\n  \"group\": \"TEACHERS\",\n  \"course_year\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register/"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student registration succeeded', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Student role is correct', function () {",
+                  "    pm.expect(json.role).to.eql('student');",
+                  "});",
+                  "pm.collectionVariables.set('studentId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"first_name\": \"Student\",\n  \"last_name\": \"Runner\",\n  \"role\": \"student\",\n  \"university\": \"Test University\",\n  \"group\": \"{{studentGroup}}\",\n  \"course_year\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register/"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Teacher login succeeded', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.access_token).to.be.a('string');",
+                  "pm.collectionVariables.set('teacherAccessToken', json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login/"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student login succeeded', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.access_token).to.be.a('string');",
+                  "pm.collectionVariables.set('studentAccessToken', json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login/"
+          },
+          "response": []
+        },
+        {
+          "name": "Teacher Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Teacher profile is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('teacherId')));",
+                  "pm.expect(json.username).to.eql(pm.collectionVariables.get('teacherUsername'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me/"
+          },
+          "response": []
+        },
+        {
+          "name": "Student Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student profile is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('studentId')));",
+                  "pm.expect(json.username).to.eql(pm.collectionVariables.get('studentUsername'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me/"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Content CRUD",
+      "item": [
+        {
+          "name": "Create Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('courseTitle'));",
+                  "pm.expect(json.is_published).to.eql(true);",
+                  "pm.collectionVariables.set('courseId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{courseTitle}}\",\n  \"description\": \"Course created from Postman collection\",\n  \"difficulty_level\": \"intermediate\",\n  \"is_published\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/courses/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course can be read publicly', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('courseId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('courseUpdatedTitle'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{courseUpdatedTitle}}\",\n  \"difficulty_level\": \"advanced\"\n}"
+            },
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "List Courses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course list contains created course', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const courseId = Number(pm.collectionVariables.get('courseId'));",
+                  "pm.expect(json.some(function (item) { return item.id === courseId; })).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/courses/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.course_id).to.eql(Number(pm.collectionVariables.get('courseId')));",
+                  "pm.collectionVariables.set('moduleId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": {{courseId}},\n  \"title\": \"{{moduleTitle}}\",\n  \"description\": \"Module created from Postman collection\",\n  \"order\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/modules/"
+          },
+          "response": []
+        },
+        {
+          "name": "List Course Modules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course modules contain created module', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const moduleId = Number(pm.collectionVariables.get('moduleId'));",
+                  "pm.expect(json.some(function (item) { return item.id === moduleId; })).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/modules/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('moduleUpdatedTitle'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{moduleUpdatedTitle}}\",\n  \"order\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
+                  "pm.collectionVariables.set('lessonId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{lessonTitle}}\",\n  \"content\": \"Lesson body for backend verification\",\n  \"video_url\": null,\n  \"external_url\": \"https://example.com/lesson\",\n  \"order\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/lessons/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson can be read with auth', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('lessonId')));",
+                  "pm.expect(json.is_completed).to.eql(false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('lessonUpdatedTitle'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{lessonUpdatedTitle}}\",\n  \"content\": \"Updated lesson body for backend verification\"\n}"
+            },
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
+                  "pm.collectionVariables.set('taskId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{taskTitle}}\",\n  \"description\": \"Solve the verification task\",\n  \"task_type\": \"text\",\n  \"difficulty_level\": \"medium\",\n  \"correct_answer\": \"expected answer\",\n  \"explanation\": \"Task explanation\",\n  \"max_score\": 5,\n  \"order\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/tasks/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task can be read publicly', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('taskId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tasks/{{taskId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('taskUpdatedTitle'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{taskUpdatedTitle}}\",\n  \"explanation\": \"Updated task explanation\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tasks/{{taskId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendation created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
+                  "pm.collectionVariables.set('recommendationId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{recommendationTitle}}\",\n  \"description\": \"Study the topic again and review the provided resource.\",\n  \"resource_url\": \"{{recommendationResourceUrl}}\",\n  \"trigger_score_threshold\": 60\n}"
+            },
+            "url": "{{baseUrl}}/api/recommendations/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendation can be read', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('recommendationId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recommendations/{{recommendationId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendation updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('recommendationUpdatedTitle'));",
+                  "pm.expect(json.trigger_score_threshold).to.eql(80);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{recommendationUpdatedTitle}}\",\n  \"trigger_score_threshold\": 80\n}"
+            },
+            "url": "{{baseUrl}}/api/recommendations/{{recommendationId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "List Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendation list contains created recommendation', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const recommendationId = Number(pm.collectionVariables.get('recommendationId'));",
+                  "pm.expect(json.some(function (item) { return item.id === recommendationId; })).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recommendations/"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Test CRUD",
+      "item": [
+        {
+          "name": "Create Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
+                  "pm.collectionVariables.set('testId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": {{courseId}},\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{testTitle}}\",\n  \"description\": \"Test created from Postman collection\",\n  \"time_limit\": 15,\n  \"passing_score\": 60,\n  \"attempts_allowed\": 2,\n  \"is_active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test can be read', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('testId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('testUpdatedTitle'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{testUpdatedTitle}}\",\n  \"time_limit\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/{{testId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Question created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.test_id).to.eql(Number(pm.collectionVariables.get('testId')));",
+                  "pm.collectionVariables.set('questionId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_id\": {{testId}},\n  \"text\": \"{{questionText}}\",\n  \"question_type\": \"single_choice\",\n  \"difficulty_level\": \"medium\",\n  \"score\": 10,\n  \"order\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/questions/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Question updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.text).to.eql(pm.collectionVariables.get('questionUpdatedText'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"{{questionUpdatedText}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/questions/{{questionId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Correct Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Correct option created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.is_correct).to.eql(true);",
+                  "pm.collectionVariables.set('correctOptionId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{questionId}},\n  \"text\": \"{{correctOptionText}}\",\n  \"is_correct\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/answer-options/"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Correct Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Correct option updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.text).to.eql(pm.collectionVariables.get('correctOptionUpdatedText'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"{{correctOptionUpdatedText}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/answer-options/{{correctOptionId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Wrong Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Wrong option created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.is_correct).to.eql(false);",
+                  "pm.collectionVariables.set('wrongOptionId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{questionId}},\n  \"text\": \"{{wrongOptionText}}\",\n  \"is_correct\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/answer-options/"
+          },
+          "response": []
+        },
+        {
+          "name": "List Test Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test questions are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.length).to.be.above(0);",
+                  "pm.expect(json[0].answer_options.length).to.eql(2);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/questions/"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Student Lesson And Test Flow",
+      "item": [
+        {
+          "name": "Read Lesson As Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student can open lesson before completion', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('lessonId')));",
+                  "pm.expect(json.is_completed).to.eql(false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson completion succeeded', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.lesson_id).to.eql(Number(pm.collectionVariables.get('lessonId')));",
+                  "pm.expect(json.is_completed).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/complete/"
+          },
+          "response": []
+        },
+        {
+          "name": "Read Lesson After Completion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson state shows completion', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.is_completed).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Test As Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student can view test', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('testId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "List Test Questions As Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Student sees test questions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.length).to.eql(1);",
+                  "pm.expect(json[0].answer_options.length).to.eql(2);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/questions/"
+          },
+          "response": []
+        },
+        {
+          "name": "Start Test Attempt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test attempt started', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.test_id).to.eql(Number(pm.collectionVariables.get('testId')));",
+                  "pm.collectionVariables.set('attemptId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/start/"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Wrong Answer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Answer submission succeeded', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.question_id).to.eql(Number(pm.collectionVariables.get('questionId')));",
+                  "pm.expect(json.is_correct).to.eql(false);",
+                  "pm.expect(json.score_received).to.eql(0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{questionId}},\n  \"selected_option_id\": {{wrongOptionId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/test-attempts/{{attemptId}}/answers/"
+          },
+          "response": []
+        },
+        {
+          "name": "Finish Test Attempt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Attempt finished successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.finished_at).to.not.eql(null);",
+                  "pm.expect(json.percentage).to.eql(0);",
+                  "pm.expect(json.is_passed).to.eql(false);",
+                  "pm.collectionVariables.set('attemptPercentage', json.percentage);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/test-attempts/{{attemptId}}/finish/"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attempt Result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Attempt result is available', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.attempt.id).to.eql(Number(pm.collectionVariables.get('attemptId')));",
+                  "pm.expect(json.answers.length).to.eql(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/test-attempts/{{attemptId}}/result/"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Analytics And Recommendations",
+      "item": [
+        {
+          "name": "Global Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Global progress is returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.completed_lessons).to.eql(1);",
+                  "pm.expect(json.total_lessons).to.eql(1);",
+                  "pm.expect(json.passed_tests).to.eql(0);",
+                  "pm.expect(json.total_tests).to.eql(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/progress/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Course Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course progress is returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.scope_type).to.eql('course');",
+                  "pm.expect(json.scope_id).to.eql(Number(pm.collectionVariables.get('courseId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/progress/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Module Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module progress is returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.scope_type).to.eql('module');",
+                  "pm.expect(json.scope_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/progress/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "My Topic Results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Topic results are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const moduleId = Number(pm.collectionVariables.get('moduleId'));",
+                  "const item = json.find(function (entry) { return entry.module_id === moduleId; });",
+                  "pm.expect(item).to.not.eql(undefined);",
+                  "pm.expect(item.attempts_count).to.eql(1);",
+                  "pm.expect(item.average_percentage).to.eql(0);",
+                  "pm.expect(item.weakness_level).to.eql('high');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/topic-results/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Course Topic Results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course topic results are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.length).to.eql(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/topic-results/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Module Topic Results",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module topic results are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/topic-results/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "My Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Analytics summary is returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.total_attempts).to.be.at.least(1);",
+                  "pm.expect(json.completed_attempts).to.be.at.least(1);",
+                  "pm.expect(json.lessons_completed).to.be.at.least(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/my/summary/"
+          },
+          "response": []
+        },
+        {
+          "name": "Weak Topics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Weak topics are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/my/weak-topics/"
+          },
+          "response": []
+        },
+        {
+          "name": "Best Topics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Best topics are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/my/best-topics/"
+          },
+          "response": []
+        },
+        {
+          "name": "Dynamics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dynamics are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.length).to.eql(1);",
+                  "pm.expect(json[0].attempt_id).to.eql(Number(pm.collectionVariables.get('attemptId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/my/dynamics/"
+          },
+          "response": []
+        },
+        {
+          "name": "My Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Personal recommendations are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const recommendationId = Number(pm.collectionVariables.get('recommendationId'));",
+                  "const item = json.find(function (entry) { return entry.id === recommendationId; });",
+                  "pm.expect(item).to.not.eql(undefined);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recommendations/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Course Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course recommendations are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.length).to.be.at.least(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/recommendations/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Module Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module recommendations are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/recommendations/my/"
+          },
+          "response": []
+        },
+        {
+          "name": "Group Topic Result Aggregates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Group aggregates are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
+                  "pm.expect(json[0].high_weakness_count).to.be.at.least(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/groups/{{studentGroup}}/topic-results/"
+          },
+          "response": []
+        },
+        {
+          "name": "Course Topic Result Aggregates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course aggregates are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/courses/{{courseId}}/topic-results/"
+          },
+          "response": []
+        },
+        {
+          "name": "Module Topic Result Aggregates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module aggregates are returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/modules/{{moduleId}}/topic-results/"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 Cleanup",
+      "item": [
+        {
+          "name": "Delete Recommendation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendation deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recommendations/{{recommendationId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Correct Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Correct option deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/answer-options/{{correctOptionId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Wrong Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Wrong option deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/answer-options/{{wrongOptionId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Question deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/questions/{{questionId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Test deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{taskId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/lessons/{{lessonId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Course deleted', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacherAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

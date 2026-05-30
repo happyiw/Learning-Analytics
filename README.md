@@ -14,12 +14,12 @@ FastAPI backend for the diploma project: "Проектирование сист�
 
 ## Структура
 
-- `app/main.py` - точка входа FastAPI
-- `app/models.py` - SQLAlchemy-модели
-- `app/schemas.py` - Pydantic-схемы
-- `app/api/` - роуты API
-- `app/core/` - настройки и безопасность
-- `app/db.py` - подключение к БД
+- `backend/main.py` - точка входа FastAPI
+- `backend/models.py` - SQLAlchemy-модели
+- `backend/schemas.py` - Pydantic-схемы
+- `backend/api/` - роуты API
+- `backend/core/` - настройки и безопасность
+- `backend/db.py` - подключение к БД
 
 ## Запуск
 
@@ -38,7 +38,7 @@ pip install -r requirements.txt
 3. Запустить приложение:
 
 ```powershell
-uvicorn app.main:app --reload
+uvicorn backend.main:app --reload
 ```
 
 4. Документация Swagger:
