@@ -1,0 +1,218 @@
+<section class="analytics-page">
+  <article class="analytics-hero">
+    <span class="analytics-hero__badge">Персональная аналитика</span>
+    <h1>Наглядная картина ваших результатов и учебной динамики.</h1>
+    <p>
+      Это прототип аналитической страницы. Здесь собрана ключевая сводка, сильные
+      и слабые темы, а также динамика по датам.
+    </p>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="page-state page-state--error" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="page-state">Загрузка аналитики...</div>
+  } @else if (snapshot(); as data) {
+    <section class="analytics-summary-grid">
+      <article class="summary-card">
+        <span>Общий прогресс</span>
+        <strong>{{ data.progress.completion_rate | number: '1.0-0' }}%</strong>
+        <p>{{ data.progress.completed_lessons }} из {{ data.progress.total_lessons }} уроков завершено.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Средний результат</span>
+        <strong>{{ data.summary.average_percentage | number: '1.0-0' }}%</strong>
+        <p>Средний процент по завершённым тестовым попыткам.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Лучший результат</span>
+        <strong>{{ bestAverageResult() | number: '1.0-0' }}%</strong>
+        <p>Максимальный лучший результат среди всех изучаемых тем.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Завершено тестов</span>
+        <strong>{{ data.progress.passed_tests }}</strong>
+        <p>Успешно пройденных тестов из {{ data.progress.total_tests }}.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Завершено уроков</span>
+        <strong>{{ data.summary.lessons_completed }}</strong>
+        <p>Количество завершённых уроков по всем доступным материалам.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Слабых тем</span>
+        <strong>{{ data.weakTopics.length }}</strong>
+        <p>Темы, которым стоит уделить дополнительное внимание.</p>
+      </article>
+    </section>
+
+    <section class="analytics-chart-grid">
+      <article class="chart-card">
+        <div class="chart-card__header">
+          <div>
+            <span>Динамика результатов по датам</span>
+            <strong>Линейный график попыток</strong>
+          </div>
+          <p>{{ data.dynamics.length }} точек на графике</p>
+        </div>
+
+        @if (chartPoints().length) {
+          <svg class="line-chart" viewBox="0 0 560 220" preserveAspectRatio="none" aria-label="График динамики">
+            <line x1="24" y1="184" x2="536" y2="184" class="line-chart__axis" />
+            <line x1="24" y1="24" x2="24" y2="184" class="line-chart__axis" />
+            <polyline [attr.points]="chartPolyline()" class="line-chart__polyline" />
+
+            @for (point of chartPoints(); track point.label + point.value) {
+              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" class="line-chart__point" />
+            }
+          </svg>
+
+          <div class="chart-card__legend">
+            @for (point of chartPoints(); track point.label + point.value) {
+              <span>{{ point.label }} - {{ point.value | number: '1.0-0' }}%</span>
+            }
+          </div>
+        } @else {
+          <div class="chart-card__empty">Пока нет данных для отображения динамики.</div>
+        }
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-card__header">
+          <div>
+            <span>Результаты по модулям</span>
+            <strong>Столбчатая диаграмма</strong>
+          </div>
+          <p>{{ data.topicResults.length }} тем в таблице</p>
+        </div>
+
+        @if (data.topicResults.length) {
+          <div class="module-bars">
+            @for (item of data.topicResults; track trackByModuleId($index, item)) {
+              <div class="module-bars__row">
+                <div class="module-bars__label">{{ item.module_title }}</div>
+                <div class="module-bars__track">
+                  <div class="module-bars__fill" [style.width.%]="item.average_percentage"></div>
+                </div>
+                <div class="module-bars__value">{{ item.average_percentage | number: '1.0-0' }}%</div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="chart-card__empty">Результаты по темам появятся после первых попыток.</div>
+        }
+      </article>
+    </section>
+
+    <section class="analytics-table-grid">
+      <article class="table-card">
+        <div class="table-card__header">
+          <span>Слабые темы</span>
+          <strong>Таблица зон роста</strong>
+        </div>
+
+        @if (data.weakTopics.length) {
+          <table>
+            <thead>
+              <tr>
+                <th>Тема</th>
+                <th>Попытки</th>
+                <th>Средний</th>
+                <th>Лучший</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.weakTopics; track trackByModuleId($index, item)) {
+                <tr>
+                  <td>{{ item.module_title }}</td>
+                  <td>{{ item.attempts_count }}</td>
+                  <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <div class="table-card__empty">Слабые темы пока не обнаружены.</div>
+        }
+      </article>
+
+      <article class="table-card">
+        <div class="table-card__header">
+          <span>Сильные темы</span>
+          <strong>Таблица лучших результатов</strong>
+        </div>
+
+        @if (data.bestTopics.length) {
+          <table>
+            <thead>
+              <tr>
+                <th>Тема</th>
+                <th>Попытки</th>
+                <th>Средний</th>
+                <th>Лучший</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.bestTopics; track trackByModuleId($index, item)) {
+                <tr>
+                  <td>{{ item.module_title }}</td>
+                  <td>{{ item.attempts_count }}</td>
+                  <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <div class="table-card__empty">Сильные темы появятся после накопления результатов.</div>
+        }
+      </article>
+    </section>
+
+    <article class="topics-card">
+      <div class="topics-card__header">
+        <span>Таблица результатов по темам</span>
+        <strong>Полная сводка по модулям</strong>
+      </div>
+
+      @if (data.topicResults.length) {
+        <table>
+          <thead>
+            <tr>
+              <th>Модуль</th>
+              <th>Попытки</th>
+              <th>Средний</th>
+              <th>Лучший</th>
+              <th>Уровень</th>
+              <th>Последняя дата</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of data.topicResults; track trackByModuleId($index, item)) {
+              <tr>
+                <td>{{ item.module_title }}</td>
+                <td>{{ item.attempts_count }}</td>
+                <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
+                <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                <td>{{ item.weakness_level }}</td>
+                <td>{{ item.last_attempt_at ? (item.last_attempt_at | date: 'dd.MM.yyyy') : 'Нет данных' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <div class="topics-card__empty">Таблица заполнится после появления результатов по темам.</div>
+      }
+    </article>
+  }
+</section>

@@ -20,9 +20,19 @@
         </a>
 
         @if (authService.isAuthenticated()) {
-          <button class="site-nav__action" type="button">Перейти к курсам</button>
-          <button class="site-nav__action" type="button">Посмотреть аналитику</button>
-          <button class="site-nav__action" type="button">Открыть рекомендации</button>
+          <a class="site-nav__action" routerLink="/courses" routerLinkActive="site-nav__action--active">
+            Перейти к курсам
+          </a>
+          <a class="site-nav__action" routerLink="/analytics" routerLinkActive="site-nav__action--active">
+            Посмотреть аналитику
+          </a>
+          <a
+            class="site-nav__action"
+            routerLink="/recommendations"
+            routerLinkActive="site-nav__action--active"
+          >
+            Открыть рекомендации
+          </a>
 
           <a class="profile-shortcut" routerLink="/profile" routerLinkActive="profile-shortcut--active">
             <span class="profile-shortcut__avatar" aria-hidden="true">{{ profileInitials() }}</span>

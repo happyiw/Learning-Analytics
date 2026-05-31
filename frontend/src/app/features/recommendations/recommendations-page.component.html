@@ -1,0 +1,116 @@
+<section class="recommendations-page">
+  <article class="recommendations-hero">
+    <div>
+      <span class="recommendations-hero__badge">Рекомендации</span>
+      <h1>Персональные материалы для уверенного движения вперёд.</h1>
+      <p>
+        Это прототип страницы рекомендаций. Здесь можно смотреть общие советы и
+        при необходимости запрашивать рекомендации по курсу или модулю.
+      </p>
+    </div>
+
+    <form class="recommendations-filter" (ngSubmit)="submitFilter()">
+      <div class="recommendations-filter__scope">
+        <button
+          type="button"
+          class="recommendations-filter__chip"
+          [class.recommendations-filter__chip--active]="scope === 'all'"
+          (click)="applyScope('all')"
+        >
+          Все
+        </button>
+        <button
+          type="button"
+          class="recommendations-filter__chip"
+          [class.recommendations-filter__chip--active]="scope === 'course'"
+          (click)="applyScope('course')"
+        >
+          По курсу
+        </button>
+        <button
+          type="button"
+          class="recommendations-filter__chip"
+          [class.recommendations-filter__chip--active]="scope === 'module'"
+          (click)="applyScope('module')"
+        >
+          По модулю
+        </button>
+      </div>
+
+      @if (scope !== 'all') {
+        <label class="recommendations-filter__field">
+          <span>{{ scope === 'course' ? 'ID курса' : 'ID модуля' }}</span>
+          <input
+            type="number"
+            min="1"
+            [(ngModel)]="scopeId"
+            [name]="scope === 'course' ? 'courseId' : 'moduleId'"
+            placeholder="Введите идентификатор"
+          />
+        </label>
+      }
+
+      <button class="recommendations-filter__submit" type="submit">
+        Применить фильтр
+      </button>
+    </form>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="page-state page-state--error" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="page-state">Загрузка рекомендаций...</div>
+  } @else if (!recommendations().length) {
+    <div class="page-state page-state--empty">
+      По выбранному фильтру рекомендаций пока нет. Попробуйте другой курс, модуль или общий режим.
+    </div>
+  } @else {
+    <section class="recommendations-grid">
+      @for (item of recommendations(); track trackByRecommendationId($index, item)) {
+        <article class="recommendation-card">
+          <div class="recommendation-card__meta">
+            <span class="recommendation-card__module">{{ item.module_title }}</span>
+            <span class="recommendation-card__weakness">{{ item.weakness_level }}</span>
+          </div>
+
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.description }}</p>
+
+          <div class="recommendation-card__details">
+            <div>
+              <span>Связанный модуль</span>
+              <strong>{{ item.module_title }}</strong>
+            </div>
+            <div>
+              <span>Порог срабатывания</span>
+              <strong>{{ item.trigger_score_threshold | number: '1.0-0' }}%</strong>
+            </div>
+            <div>
+              <span>Текущий результат</span>
+              <strong>{{ item.current_percentage | number: '1.0-0' }}%</strong>
+            </div>
+          </div>
+
+          @if (item.resource_url) {
+            <a
+              class="recommendation-card__button"
+              [href]="item.resource_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Открыть материал
+            </a>
+          } @else {
+            <button class="recommendation-card__button recommendation-card__button--disabled" type="button" disabled>
+              Открыть материал
+            </button>
+          }
+        </article>
+      }
+    </section>
+  }
+</section>

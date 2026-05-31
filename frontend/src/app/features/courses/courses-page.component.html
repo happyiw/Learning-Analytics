@@ -1,0 +1,55 @@
+<section class="courses-page">
+  <article class="courses-hero">
+    <span class="courses-hero__badge">Курсы</span>
+    <h1>Выберите курс и продолжайте обучение в удобном темпе.</h1>
+    <p>
+      Здесь собраны все опубликованные курсы. Для каждого курса показаны ключевые
+      сведения и доступность для старта.
+    </p>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="page-state page-state--error" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="page-state">Загрузка курсов...</div>
+  } @else if (!courses().length) {
+    <div class="page-state page-state--empty">
+      Пока нет опубликованных курсов. Как только они появятся, список отобразится здесь.
+    </div>
+  } @else {
+    <section class="courses-grid">
+      @for (course of courses(); track trackByCourseId($index, course)) {
+        <article class="course-card">
+          <div class="course-card__header">
+            <span class="course-card__difficulty">
+              {{ course.difficulty_level || 'Уровень не указан' }}
+            </span>
+            <span class="course-card__status">
+              {{ authService.isAuthenticated() ? 'Доступен для старта' : 'Открыт для просмотра' }}
+            </span>
+          </div>
+
+          <h2>{{ course.title }}</h2>
+          <p>{{ course.description || 'Описание курса будет добавлено позже.' }}</p>
+
+          <div class="course-card__progress">
+            <span>Прогресс</span>
+            <strong>
+              {{
+                authService.isAuthenticated()
+                  ? 'Появится после начала обучения'
+                  : 'Доступен после входа в аккаунт'
+              }}
+            </strong>
+          </div>
+
+          <button class="course-card__button" type="button">Открыть курс</button>
+        </article>
+      }
+    </section>
+  }
+</section>
