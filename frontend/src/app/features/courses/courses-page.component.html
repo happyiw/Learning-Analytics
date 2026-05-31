@@ -3,8 +3,7 @@
     <span class="courses-hero__badge">Курсы</span>
     <h1>Выберите курс и продолжайте обучение в удобном темпе.</h1>
     <p>
-      Здесь собраны все опубликованные курсы. Для каждого курса показаны ключевые
-      сведения и доступность для старта.
+      Здесь собраны все опубликованные курсы. Для каждого курса показаны ключевые сведения и доступность для старта.
     </p>
   </article>
 
@@ -25,9 +24,7 @@
       @for (course of courses(); track trackByCourseId($index, course)) {
         <article class="course-card">
           <div class="course-card__header">
-            <span class="course-card__difficulty">
-              {{ course.difficulty_level || 'Уровень не указан' }}
-            </span>
+            <span class="course-card__difficulty">Сложность {{ difficultyLabel(course) }}</span>
             <span class="course-card__status">
               {{ authService.isAuthenticated() ? 'Доступен для старта' : 'Открыт для просмотра' }}
             </span>

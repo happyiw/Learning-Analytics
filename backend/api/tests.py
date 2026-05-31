@@ -118,6 +118,10 @@ def score_answer(
         if option.is_correct
     }
     normalized_answer = normalize_text(text_answer)
+    if not correct_texts:
+        is_answered = bool(normalized_answer)
+        return is_answered, question.score if is_answered else 0.0
+
     is_correct = normalized_answer in correct_texts if normalized_answer else False
     return is_correct, question.score if is_correct else 0.0
 

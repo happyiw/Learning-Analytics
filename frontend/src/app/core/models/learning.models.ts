@@ -5,12 +5,38 @@ import {
   TopicResult
 } from './dashboard.models';
 
+export interface LessonStatItem {
+  label: string;
+  value: string;
+  hint: string | null;
+}
+
+export interface LessonContentBlock {
+  type: 'rich_text' | 'callout' | 'bullets' | 'checklist' | 'table' | 'chart' | 'image' | 'stat_grid';
+  title: string | null;
+  text: string | null;
+  tone: 'default' | 'info' | 'success' | 'warning' | 'accent' | null;
+  paragraphs: string[];
+  items: string[];
+  columns: string[];
+  rows: string[][];
+  labels: string[];
+  values: number[];
+  unit: string | null;
+  src: string | null;
+  alt: string | null;
+  caption: string | null;
+  stats: LessonStatItem[];
+}
+
 export interface ModuleItem {
   id: number;
   course_id: number;
   title: string;
   description: string | null;
   order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LessonItem {
@@ -18,14 +44,18 @@ export interface LessonItem {
   module_id: number;
   title: string;
   content: string;
+  content_blocks: LessonContentBlock[];
   video_url: string | null;
   external_url: string | null;
   order: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface LessonDetail extends LessonItem {
   is_completed: boolean;
+  next_lesson_id: number | null;
+  next_lesson_title: string | null;
 }
 
 export interface LessonCompletion {
@@ -44,6 +74,8 @@ export interface TaskItem {
   explanation: string | null;
   max_score: number;
   order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TestItem {
@@ -56,6 +88,8 @@ export interface TestItem {
   passing_score: number;
   attempts_allowed: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AnswerOptionPublic {

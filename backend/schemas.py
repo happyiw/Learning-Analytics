@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend.enums import UserRole
 
@@ -47,11 +48,16 @@ class TokenRead(BaseModel):
     token_type: str = "bearer"
 
 
+class TimestampedRead(ORMModel):
+    created_at: datetime
+    updated_at: datetime
+
+
 class CourseCreate(BaseModel):
     title: str
     description: str | None = None
     author_id: int | None = None
-    difficulty_level: str | None = None
+    difficulty: int = Field(default=1, ge=1, le=10)
     is_published: bool = False
 
 
@@ -59,19 +65,17 @@ class CourseUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     author_id: int | None = None
-    difficulty_level: str | None = None
+    difficulty: int | None = Field(default=None, ge=1, le=10)
     is_published: bool | None = None
 
 
-class CourseRead(ORMModel):
+class CourseRead(TimestampedRead):
     id: int
     title: str
     description: str | None = None
     author_id: int | None = None
-    difficulty_level: str | None = None
+    difficulty: int
     is_published: bool
-    created_at: datetime
-    updated_at: datetime
 
 
 class ModuleCreate(BaseModel):
@@ -88,7 +92,7 @@ class ModuleUpdate(BaseModel):
     order: int | None = None
 
 
-class ModuleRead(ORMModel):
+class ModuleRead(TimestampedRead):
     id: int
     course_id: int
     title: str
@@ -96,37 +100,71 @@ class ModuleRead(ORMModel):
     order: int
 
 
+class LessonStatItem(BaseModel):
+    label: str
+    value: str
+    hint: str | None = None
+
+
+class LessonContentBlock(BaseModel):
+    type: Literal["rich_text", "callout", "bullets", "checklist", "table", "chart", "image", "stat_grid"]
+    title: str | None = None
+    text: str | None = None
+    tone: Literal["default", "info", "success", "warning", "accent"] | None = None
+    paragraphs: list[str] = Field(default_factory=list)
+    items: list[str] = Field(default_factory=list)
+    columns: list[str] = Field(default_factory=list)
+    rows: list[list[str]] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    values: list[float] = Field(default_factory=list)
+    unit: str | None = None
+    src: str | None = None
+    alt: str | None = None
+    caption: str | None = None
+    stats: list[LessonStatItem] = Field(default_factory=list)
+
+
 class LessonCreate(BaseModel):
     module_id: int
     title: str
-    content: str
+    content: str | None = None
+    content_blocks: list[LessonContentBlock] = Field(default_factory=list)
     video_url: str | None = None
     external_url: str | None = None
     order: int = 0
+
+    @model_validator(mode="after")
+    def validate_content(self) -> "LessonCreate":
+        if not (self.content or self.content_blocks):
+            raise ValueError("Lesson content or content_blocks is required.")
+        return self
 
 
 class LessonUpdate(BaseModel):
     module_id: int | None = None
     title: str | None = None
     content: str | None = None
+    content_blocks: list[LessonContentBlock] | None = None
     video_url: str | None = None
     external_url: str | None = None
     order: int | None = None
 
 
-class LessonRead(ORMModel):
+class LessonRead(TimestampedRead):
     id: int
     module_id: int
     title: str
     content: str
+    content_blocks: list[LessonContentBlock] = Field(default_factory=list)
     video_url: str | None = None
     external_url: str | None = None
     order: int
-    created_at: datetime
 
 
 class LessonDetailRead(LessonRead):
     is_completed: bool
+    next_lesson_id: int | None = None
+    next_lesson_title: str | None = None
 
 
 class LessonProgressRead(BaseModel):
@@ -159,7 +197,7 @@ class TaskUpdate(BaseModel):
     order: int | None = None
 
 
-class TaskRead(ORMModel):
+class TaskRead(TimestampedRead):
     id: int
     module_id: int
     title: str
@@ -197,7 +235,7 @@ class TestUpdate(BaseModel):
     is_active: bool | None = None
 
 
-class TestRead(ORMModel):
+class TestRead(TimestampedRead):
     id: int
     course_id: int
     module_id: int | None = None
@@ -221,7 +259,7 @@ class AnswerOptionUpdate(BaseModel):
     is_correct: bool | None = None
 
 
-class AnswerOptionRead(ORMModel):
+class AnswerOptionRead(TimestampedRead):
     id: int
     question_id: int
     text: str
@@ -252,7 +290,7 @@ class QuestionUpdate(BaseModel):
     order: int | None = None
 
 
-class QuestionRead(ORMModel):
+class QuestionRead(TimestampedRead):
     id: int
     test_id: int
     text: str
@@ -260,7 +298,7 @@ class QuestionRead(ORMModel):
     difficulty_level: str | None = None
     score: float
     order: int
-    answer_options: list[AnswerOptionRead] = []
+    answer_options: list[AnswerOptionRead] = Field(default_factory=list)
 
 
 class PublicQuestionRead(ORMModel):
@@ -271,7 +309,7 @@ class PublicQuestionRead(ORMModel):
     difficulty_level: str | None = None
     score: float
     order: int
-    answer_options: list[AnswerOptionPublicRead] = []
+    answer_options: list[AnswerOptionPublicRead] = Field(default_factory=list)
 
 
 class TestAttemptRead(ORMModel):
@@ -319,7 +357,7 @@ class ProgressRead(BaseModel):
     completion_rate: float
 
 
-class TopicResultRead(BaseModel):
+class TopicResultRead(TimestampedRead):
     id: int | None = None
     module_id: int
     module_title: str
@@ -328,7 +366,6 @@ class TopicResultRead(BaseModel):
     best_percentage: float
     weakness_level: str
     last_attempt_at: datetime | None = None
-    updated_at: datetime | None = None
 
 
 class TopicResultAggregateRead(BaseModel):
@@ -359,7 +396,7 @@ class RecommendationUpdate(BaseModel):
     trigger_score_threshold: float | None = None
 
 
-class RecommendationRead(ORMModel):
+class RecommendationRead(TimestampedRead):
     id: int
     module_id: int
     title: str

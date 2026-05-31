@@ -23,9 +23,15 @@
       @if (currentQuestion(); as question) {
         <div class="question-card">
           <h2>{{ question.text }}</h2>
-          <p>Тип: {{ question.question_type }}</p>
 
-          @if (question.answer_options.length) {
+          @if (question.question_type === 'text' || !question.answer_options.length) {
+            <textarea
+              class="question-card__textarea"
+              [value]="getDraft(question.id).text_answer"
+              (input)="updateTextAnswer(question.id, $any($event.target).value)"
+              placeholder="Введите свой ответ"
+            ></textarea>
+          } @else {
             <div class="option-list">
               @for (option of question.answer_options; track option.id) {
                 <label class="option-item">
@@ -39,13 +45,6 @@
                 </label>
               }
             </div>
-          } @else {
-            <textarea
-              class="question-card__textarea"
-              [value]="getDraft(question.id).text_answer"
-              (input)="updateTextAnswer(question.id, $any($event.target).value)"
-              placeholder="Введите свой ответ"
-            ></textarea>
           }
         </div>
       }

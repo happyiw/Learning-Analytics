@@ -12,6 +12,7 @@ from backend.api.modules import router as modules_router
 from backend.api.recommendations import router as recommendations_router
 from backend.api.tasks import router as tasks_router
 from backend.api.tests import router as tests_router
+from backend.bootstrap import initialize_database
 from backend.core.config import settings
 from backend.db import Base, engine
 
@@ -19,6 +20,7 @@ from backend.db import Base, engine
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    initialize_database(engine)
     yield
 
 

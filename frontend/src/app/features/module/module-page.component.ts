@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ModulePageSnapshot } from '../../core/models/learning.models';
+import { LessonItem, ModulePageSnapshot } from '../../core/models/learning.models';
 import { LearningService } from '../../core/services/learning.service';
 
 @Component({
@@ -33,6 +33,14 @@ export class ModulePageComponent implements OnInit {
       return;
     }
     void this.router.navigate(['/courses']);
+  }
+
+  lessonPreview(lesson: LessonItem): string {
+    const trimmed = lesson.content.trim();
+    if (trimmed.length <= 160) {
+      return trimmed;
+    }
+    return `${trimmed.slice(0, 157).trimEnd()}...`;
   }
 
   private loadModule(): void {

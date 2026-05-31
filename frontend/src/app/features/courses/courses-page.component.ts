@@ -28,6 +28,10 @@ export class CoursesPageComponent implements OnInit {
     return course.id;
   }
 
+  difficultyLabel(course: CourseCard): string {
+    return `${course.difficulty}/10`;
+  }
+
   private loadCourses(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');

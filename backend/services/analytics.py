@@ -199,7 +199,8 @@ def compute_topic_result_row(
         best_percentage=best_percentage,
         weakness_level=weakness_level,
         last_attempt_at=last_attempt_at,
-        updated_at=existing.updated_at if existing else None,
+        created_at=existing.created_at if existing else module.created_at,
+        updated_at=existing.updated_at if existing else module.updated_at,
     )
 
 

@@ -1,9 +1,10 @@
 import { CommonModule, Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { LessonDetail } from '../../core/models/learning.models';
+import { LessonContentBlock, LessonDetail } from '../../core/models/learning.models';
 import { LearningService } from '../../core/services/learning.service';
 
 @Component({
@@ -18,43 +19,82 @@ export class LessonPageComponent implements OnInit {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly isLoading = signal(false);
   readonly isCompleting = signal(false);
   readonly errorMessage = signal('');
   readonly lesson = signal<LessonDetail | null>(null);
   readonly lessonId = computed(() => Number(this.route.snapshot.paramMap.get('lessonId')));
+  readonly hasNextLesson = computed(() => !!this.lesson()?.next_lesson_id);
+  readonly actionLabel = computed(() => {
+    const lesson = this.lesson();
+    if (!lesson) {
+      return 'Завершить';
+    }
+    if (this.isCompleting()) {
+      return lesson.next_lesson_id ? 'Переходим...' : 'Сохраняем...';
+    }
+    if (lesson.next_lesson_id) {
+      return 'Далее';
+    }
+    return lesson.is_completed ? 'Урок завершён' : 'Завершить';
+  });
   readonly safeVideoUrl = computed<SafeResourceUrl | null>(() => {
     const url = this.lesson()?.video_url;
     return url ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null;
   });
 
   ngOnInit(): void {
-    this.loadLesson();
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadLesson());
   }
 
   goBack(): void {
     this.location.back();
   }
 
+  trackByBlock(index: number): number {
+    return index;
+  }
+
   markCompleted(): void {
     const lesson = this.lesson();
-    if (!lesson || lesson.is_completed) {
+    if (!lesson) {
+      return;
+    }
+
+    if (lesson.is_completed) {
+      this.navigateAfterCompletion(lesson);
       return;
     }
 
     this.isCompleting.set(true);
     this.learningService.completeLesson(lesson.id).subscribe({
       next: (result) => {
-        this.lesson.set({ ...lesson, is_completed: result.is_completed });
+        const updatedLesson = { ...lesson, is_completed: result.is_completed };
+        this.lesson.set(updatedLesson);
         this.isCompleting.set(false);
-        void this.router.navigate(['/modules', lesson.module_id]);
+        this.navigateAfterCompletion(updatedLesson);
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage.set(error.error?.detail || 'Не удалось завершить урок.');
         this.isCompleting.set(false);
       }
     });
+  }
+
+  chartMax(block: LessonContentBlock): number {
+    return Math.max(...block.values, 1);
+  }
+
+  chartBarWidth(block: LessonContentBlock, value: number): string {
+    return `${Math.max(12, Math.round((value / this.chartMax(block)) * 100))}%`;
+  }
+
+  safeImageUrl(url: string | null): SafeUrl | null {
+    return url ? this.sanitizer.bypassSecurityTrustUrl(url) : null;
   }
 
   private loadLesson(): void {
@@ -65,6 +105,7 @@ export class LessonPageComponent implements OnInit {
     }
 
     this.isLoading.set(true);
+    this.errorMessage.set('');
     this.learningService.getLesson(lessonId).subscribe({
       next: (lesson) => {
         this.lesson.set(lesson);
@@ -75,5 +116,14 @@ export class LessonPageComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  private navigateAfterCompletion(lesson: LessonDetail): void {
+    if (lesson.next_lesson_id) {
+      void this.router.navigate(['/lessons', lesson.next_lesson_id]);
+      return;
+    }
+
+    void this.router.navigate(['/modules', lesson.module_id]);
   }
 }

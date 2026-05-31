@@ -13,7 +13,19 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-class User(Base):
+class CreatedAtMixin:
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class TimestampMixin(CreatedAtMixin):
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+
+class User(CreatedAtMixin, Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -35,7 +47,6 @@ class User(Base):
     university: Mapped[str | None] = mapped_column(String(255), nullable=True)
     group: Mapped[str | None] = mapped_column(String(100), nullable=True)
     course_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     authored_courses: Mapped[list["Course"]] = relationship(back_populates="author")
     test_attempts: Mapped[list["TestAttempt"]] = relationship(back_populates="user")
@@ -49,21 +60,15 @@ class User(Base):
     )
 
 
-class Course(Base):
+class Course(TimestampMixin, Base):
     __tablename__ = "courses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    difficulty: Mapped[int] = mapped_column(Integer, default=1)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=utcnow,
-        onupdate=utcnow,
-    )
 
     author: Mapped[User | None] = relationship(back_populates="authored_courses")
     modules: Mapped[list["Module"]] = relationship(
@@ -76,7 +81,7 @@ class Course(Base):
     )
 
 
-class Module(Base):
+class Module(TimestampMixin, Base):
     __tablename__ = "modules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -105,17 +110,17 @@ class Module(Base):
     )
 
 
-class Lesson(Base):
+class Lesson(TimestampMixin, Base):
     __tablename__ = "lessons"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text)
+    content_blocks: Mapped[str | None] = mapped_column(Text, nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     order: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     module: Mapped[Module] = relationship(back_populates="lessons")
     progress_entries: Mapped[list["LessonProgress"]] = relationship(
@@ -124,7 +129,7 @@ class Lesson(Base):
     )
 
 
-class Task(Base):
+class Task(TimestampMixin, Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -141,7 +146,7 @@ class Task(Base):
     module: Mapped[Module] = relationship(back_populates="tasks")
 
 
-class Test(Base):
+class Test(TimestampMixin, Base):
     __tablename__ = "tests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -166,7 +171,7 @@ class Test(Base):
     )
 
 
-class Question(Base):
+class Question(TimestampMixin, Base):
     __tablename__ = "questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -185,7 +190,7 @@ class Question(Base):
     user_answers: Mapped[list["UserAnswer"]] = relationship(back_populates="question")
 
 
-class AnswerOption(Base):
+class AnswerOption(TimestampMixin, Base):
     __tablename__ = "answer_options"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -253,7 +258,7 @@ class LessonProgress(Base):
     lesson: Mapped[Lesson] = relationship(back_populates="progress_entries")
 
 
-class TopicResult(Base):
+class TopicResult(TimestampMixin, Base):
     __tablename__ = "topic_results"
     __table_args__ = (UniqueConstraint("user_id", "module_id"),)
 
@@ -265,17 +270,12 @@ class TopicResult(Base):
     best_percentage: Mapped[float] = mapped_column(Float, default=0)
     weakness_level: Mapped[str] = mapped_column(String(50), default="high")
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=utcnow,
-        onupdate=utcnow,
-    )
 
     user: Mapped[User] = relationship(back_populates="topic_results")
     module: Mapped[Module] = relationship(back_populates="topic_results")
 
 
-class Recommendation(Base):
+class Recommendation(TimestampMixin, Base):
     __tablename__ = "recommendations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

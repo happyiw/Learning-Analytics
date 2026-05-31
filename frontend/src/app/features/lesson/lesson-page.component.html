@@ -27,8 +27,115 @@
         </span>
       </div>
 
-      <div class="lesson-card__content">
+      <div class="lesson-card__summary">
         <p>{{ currentLesson.content }}</p>
+      </div>
+
+      <div class="lesson-content">
+        @for (block of currentLesson.content_blocks; track trackByBlock($index)) {
+          <section class="lesson-block" [class.lesson-block--callout]="block.type === 'callout'" [class.lesson-block--accent]="block.tone === 'accent'">
+            @if (block.title) {
+              <h2>{{ block.title }}</h2>
+            }
+
+            @switch (block.type) {
+              @case ('rich_text') {
+                <div class="lesson-block__text">
+                  @for (paragraph of block.paragraphs; track $index) {
+                    <p>{{ paragraph }}</p>
+                  }
+                </div>
+              }
+
+              @case ('callout') {
+                <div class="lesson-block__callout">
+                  <p>{{ block.text }}</p>
+                </div>
+              }
+
+              @case ('bullets') {
+                <ul class="lesson-block__list">
+                  @for (item of block.items; track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+
+              @case ('checklist') {
+                <ul class="lesson-block__checklist">
+                  @for (item of block.items; track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+
+              @case ('table') {
+                <div class="lesson-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        @for (column of block.columns; track $index) {
+                          <th>{{ column }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of block.rows; track $index) {
+                        <tr>
+                          @for (cell of row; track $index) {
+                            <td>{{ cell }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+
+              @case ('chart') {
+                <div class="lesson-chart">
+                  @for (label of block.labels; track $index) {
+                    <div class="lesson-chart__row">
+                      <span class="lesson-chart__label">{{ label }}</span>
+                      <div class="lesson-chart__bar-wrap">
+                        <div class="lesson-chart__bar" [style.width]="chartBarWidth(block, block.values[$index] || 0)"></div>
+                      </div>
+                      <strong>{{ block.values[$index] || 0 }}{{ block.unit || '' }}</strong>
+                    </div>
+                  }
+                  @if (block.caption) {
+                    <p class="lesson-block__caption">{{ block.caption }}</p>
+                  }
+                </div>
+              }
+
+              @case ('image') {
+                @if (safeImageUrl(block.src); as imageUrl) {
+                  <figure class="lesson-image">
+                    <img [src]="imageUrl" [alt]="block.alt || block.title || 'Иллюстрация урока'" />
+                    @if (block.caption) {
+                      <figcaption>{{ block.caption }}</figcaption>
+                    }
+                  </figure>
+                }
+              }
+
+              @case ('stat_grid') {
+                <div class="lesson-stats">
+                  @for (stat of block.stats; track $index) {
+                    <article class="lesson-stats__item">
+                      <span>{{ stat.label }}</span>
+                      <strong>{{ stat.value }}</strong>
+                      @if (stat.hint) {
+                        <p>{{ stat.hint }}</p>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+            }
+          </section>
+        }
       </div>
 
       @if (safeVideoUrl()) {
@@ -48,13 +155,19 @@
         </a>
       }
 
+      @if (currentLesson.next_lesson_title) {
+        <p class="lesson-page__hint">
+          Следующий урок: {{ currentLesson.next_lesson_title }}
+        </p>
+      }
+
       <button
         class="lesson-page__complete"
         type="button"
-        [disabled]="currentLesson.is_completed || isCompleting()"
+        [disabled]="((!hasNextLesson()) && currentLesson.is_completed) || isCompleting()"
         (click)="markCompleted()"
       >
-        {{ currentLesson.is_completed ? 'Урок завершён' : isCompleting() ? 'Сохраняем...' : 'Завершить' }}
+        {{ actionLabel() }}
       </button>
     </article>
   }

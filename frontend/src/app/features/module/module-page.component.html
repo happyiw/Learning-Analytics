@@ -40,7 +40,7 @@
               <div class="stack-item">
                 <div>
                   <h2>{{ lesson.title }}</h2>
-                  <p>{{ lesson.content.slice(0, 160) }}{{ lesson.content.length > 160 ? '...' : '' }}</p>
+                  <p>{{ lessonPreview(lesson) }}</p>
                 </div>
                 <a class="stack-item__button" [routerLink]="['/lessons', lesson.id]">Открыть урок</a>
               </div>

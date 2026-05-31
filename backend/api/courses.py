@@ -101,7 +101,7 @@ def create_course(
         title=payload.title,
         description=payload.description,
         author_id=author_id,
-        difficulty_level=payload.difficulty_level,
+        difficulty=payload.difficulty,
         is_published=payload.is_published,
     )
     db.add(course)

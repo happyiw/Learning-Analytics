@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.lesson_content import build_lesson_read
 from backend.models import Course, Lesson, Module, Test, User
 from backend.schemas import (
     LessonRead,
@@ -34,14 +35,15 @@ def get_module_or_404(module_id: int, db: Session) -> Module:
 
 
 @router.get("/{module_id}/lessons/", response_model=list[LessonRead])
-def list_module_lessons(module_id: int, db: Session = Depends(get_db)) -> list[Lesson]:
+def list_module_lessons(module_id: int, db: Session = Depends(get_db)) -> list[LessonRead]:
     module = get_module_or_404(module_id, db)
     course = db.get(Course, module.course_id)
     if course is None or not course.is_published:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
-    return list(
+    lessons = list(
         db.scalars(select(Lesson).where(Lesson.module_id == module_id).order_by(Lesson.order, Lesson.id))
     )
+    return [build_lesson_read(lesson) for lesson in lessons]
 
 
 @router.get("/{module_id}/tests/", response_model=list[TestRead])
