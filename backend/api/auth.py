@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.security import create_access_token, hash_password, verify_password
 from backend.deps import get_current_user, get_db
+from backend.enums import UserRole
 from backend.models import User
 from backend.schemas import TokenRead, UserCreate, UserLogin, UserRead
 
@@ -31,7 +32,7 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)) -> User:
         email=payload.email,
         first_name=payload.first_name,
         last_name=payload.last_name,
-        role="student",
+        role=UserRole.STUDENT,
         university=payload.university,
         group=payload.group,
         course_year=payload.course_year,

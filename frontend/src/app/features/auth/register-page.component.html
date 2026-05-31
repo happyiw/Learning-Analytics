@@ -67,9 +67,14 @@
 
         <div class="field">
           <label for="course_year">Course year</label>
-          <input id="course_year" type="number" formControlName="course_year" min="1" max="10" />
+          <select id="course_year" formControlName="course_year">
+            <option [ngValue]="null">Select course year</option>
+            @for (year of courseYearOptions; track year) {
+              <option [ngValue]="year">{{ year }}</option>
+            }
+          </select>
           @if (form.controls.course_year.touched && form.controls.course_year.invalid) {
-            <span class="field__error">Введите значение от 1 до 10.</span>
+            <span class="field__error">Введите значение от 1 до 6.</span>
           }
         </div>
 

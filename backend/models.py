@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db import Base
+from backend.enums import UserRole
 
 
 def utcnow() -> datetime:
@@ -21,7 +22,16 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    role: Mapped[str] = mapped_column(String(50), default="student")
+    role: Mapped[UserRole] = mapped_column(
+        Enum(
+            UserRole,
+            native_enum=False,
+            validate_strings=True,
+            create_constraint=True,
+            values_callable=lambda enum_cls: [role.value for role in enum_cls],
+        ),
+        default=UserRole.STUDENT,
+    )
     university: Mapped[str | None] = mapped_column(String(255), nullable=True)
     group: Mapped[str | None] = mapped_column(String(100), nullable=True)
     course_year: Mapped[int | None] = mapped_column(Integer, nullable=True)

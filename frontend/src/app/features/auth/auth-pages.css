@@ -117,7 +117,8 @@
   color: var(--text-secondary);
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: 3.25rem;
   padding: 0.9rem 1rem;
@@ -132,7 +133,8 @@
     transform 180ms ease;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: none;
   border-color: rgba(14, 116, 144, 0.55);
   box-shadow: 0 0 0 4px rgba(14, 116, 144, 0.12);

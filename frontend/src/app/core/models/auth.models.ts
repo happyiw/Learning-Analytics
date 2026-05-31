@@ -10,8 +10,9 @@ export interface RegisterPayload extends LoginPayload {
   university?: string | null;
   group?: string | null;
   course_year?: number | null;
-  role: 'student';
 }
+
+export type UserRole = 'student' | 'teacher' | 'admin';
 
 export interface TokenResponse {
   access_token: string;
@@ -24,7 +25,7 @@ export interface UserProfile {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
-  role: string;
+  role: UserRole;
   university: string | null;
   group: string | null;
   course_year: number | null;

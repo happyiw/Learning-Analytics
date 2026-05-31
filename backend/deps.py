@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.config import settings
 from backend.db import SessionLocal
+from backend.enums import UserRole
 from backend.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login/")
@@ -48,7 +49,7 @@ def get_current_user(
 
 
 def require_teacher_or_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role not in {"teacher", "admin"}:
+    if current_user.role not in {UserRole.TEACHER, UserRole.ADMIN}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Teacher or admin role required.",

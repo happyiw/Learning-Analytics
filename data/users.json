@@ -1,6 +1,18 @@
 [
   {
     "id": 1,
+    "username": "admin",
+    "password": "admin",
+    "email": "-",
+    "first_name": "admin",
+    "last_name": "-",
+    "role": "teacher",
+    "university": "ДВФУ",
+    "group": null,
+    "course_year": null
+  },
+  {
+    "id": 2,
     "username": "teacher_iot",
     "password": "teacher123",
     "email": "teacher_iot@example.local",
@@ -12,7 +24,7 @@
     "course_year": null
   },
   {
-    "id": 2,
+    "id": 3,
     "username": "student_demo",
     "password": "student123",
     "email": "student_demo@example.local",
@@ -24,7 +36,7 @@
     "course_year": 4
   },
   {
-    "id": 3,
+    "id": 4,
     "username": "student_low",
     "password": "student123",
     "email": "student_low@example.local",

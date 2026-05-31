@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.enums import UserRole
 from backend.models import (
     AnswerOption,
     Course,
@@ -74,8 +75,17 @@ def get_attempt_or_404(attempt_id: int, db: Session) -> TestAttempt:
 
 
 def ensure_attempt_access(attempt: TestAttempt, current_user: User) -> None:
-    if attempt.user_id != current_user.id and current_user.role not in {"teacher", "admin"}:
+    if attempt.user_id != current_user.id and current_user.role not in {UserRole.TEACHER, UserRole.ADMIN}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+
+def ensure_test_is_published(test: Test, db: Session, current_user: User) -> None:
+    if current_user.role in {UserRole.TEACHER, UserRole.ADMIN}:
+        return
+
+    course = db.get(Course, test.course_id)
+    if course is None or not course.is_published:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found.")
 
 
 def normalize_text(value: str | None) -> str:
@@ -118,8 +128,9 @@ def retrieve_test(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Test:
-    _ = current_user
-    return get_test_or_404(test_id, db)
+    test = get_test_or_404(test_id, db)
+    ensure_test_is_published(test, db, current_user)
+    return test
 
 
 @router.get("/api/tests/{test_id}/questions/", response_model=list[PublicQuestionRead])
@@ -128,8 +139,8 @@ def list_test_questions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[Question]:
-    _ = current_user
     test = get_test_or_404(test_id, db)
+    ensure_test_is_published(test, db, current_user)
     return list(
         db.scalars(
             select(Question)
@@ -147,6 +158,7 @@ def start_test_attempt(
     current_user: User = Depends(get_current_user),
 ) -> TestAttempt:
     test = get_test_or_404(test_id, db)
+    ensure_test_is_published(test, db, current_user)
     if not test.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test is inactive.")
 

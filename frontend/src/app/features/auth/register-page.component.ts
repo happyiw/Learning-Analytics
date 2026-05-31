@@ -14,6 +14,7 @@ export class RegisterPageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  readonly courseYearOptions = [1, 2, 3, 4, 5, 6];
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
@@ -25,7 +26,7 @@ export class RegisterPageComponent {
     last_name: [''],
     university: [''],
     group: [''],
-    course_year: [null as number | null, [Validators.min(1), Validators.max(10)]]
+    course_year: [null as number | null, [Validators.min(1), Validators.max(6)]]
   });
 
   submit(): void {
@@ -48,8 +49,7 @@ export class RegisterPageComponent {
         last_name: this.normalizeText(rawValue.last_name),
         university: this.normalizeText(rawValue.university),
         group: this.normalizeText(rawValue.group),
-        course_year: rawValue.course_year ?? null,
-        role: 'student'
+        course_year: rawValue.course_year ?? null
       })
       .subscribe({
         next: () => {

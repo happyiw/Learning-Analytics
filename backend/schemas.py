@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from backend.enums import UserRole
 
 
 class ORMModel(BaseModel):
@@ -10,15 +12,16 @@ class ORMModel(BaseModel):
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str
     password: str
     email: str | None = None
     first_name: str | None = None
     last_name: str | None = None
-    role: str = "student"
     university: str | None = None
     group: str | None = None
-    course_year: int | None = None
+    course_year: int | None = Field(default=None, ge=1, le=6)
 
 
 class UserLogin(BaseModel):
@@ -32,10 +35,10 @@ class UserRead(ORMModel):
     email: str | None = None
     first_name: str | None = None
     last_name: str | None = None
-    role: str
+    role: UserRole
     university: str | None = None
     group: str | None = None
-    course_year: int | None = None
+    course_year: int | None = Field(default=None, ge=1, le=6)
     created_at: datetime
 
 
