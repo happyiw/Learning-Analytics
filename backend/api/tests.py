@@ -133,6 +133,28 @@ def retrieve_test(
     return test
 
 
+@router.get("/api/tests/{test_id}/active-attempt/", response_model=TestAttemptRead)
+def get_active_test_attempt(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TestAttempt:
+    test = get_test_or_404(test_id, db)
+    ensure_test_is_published(test, db, current_user)
+    attempt = db.scalar(
+        select(TestAttempt)
+        .where(
+            TestAttempt.user_id == current_user.id,
+            TestAttempt.test_id == test_id,
+            TestAttempt.finished_at.is_(None),
+        )
+        .order_by(TestAttempt.started_at.desc(), TestAttempt.id.desc())
+    )
+    if attempt is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Active attempt not found.")
+    return attempt
+
+
 @router.get("/api/tests/{test_id}/questions/", response_model=list[PublicQuestionRead])
 def list_test_questions(
     test_id: int,
@@ -161,6 +183,18 @@ def start_test_attempt(
     ensure_test_is_published(test, db, current_user)
     if not test.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test is inactive.")
+
+    existing_attempt = db.scalar(
+        select(TestAttempt)
+        .where(
+            TestAttempt.user_id == current_user.id,
+            TestAttempt.test_id == test_id,
+            TestAttempt.finished_at.is_(None),
+        )
+        .order_by(TestAttempt.started_at.desc(), TestAttempt.id.desc())
+    )
+    if existing_attempt is not None:
+        return existing_attempt
 
     total_attempts = len(
         list(

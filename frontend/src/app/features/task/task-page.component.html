@@ -1,0 +1,44 @@
+<section class="task-page">
+  @if (task(); as currentTask) {
+    <div class="task-page__actions">
+      <a class="task-page__link" [routerLink]="['/modules', currentTask.module_id]">К модулю</a>
+    </div>
+  } @else {
+    <div class="task-page__actions">
+      <button class="task-page__back" type="button" (click)="goBack()">Вернуться назад</button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="task-state task-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="task-state">Загрузка задания...</div>
+  } @else if (task(); as currentTask) {
+    <article class="task-card">
+      <span class="task-card__badge">Задание</span>
+      <h1>{{ currentTask.title }}</h1>
+      <p>{{ currentTask.description }}</p>
+
+      <div class="task-card__grid">
+        <div>
+          <span>Тип задания</span>
+          <strong>{{ currentTask.task_type || 'Не указан' }}</strong>
+        </div>
+        <div>
+          <span>Уровень сложности</span>
+          <strong>{{ currentTask.difficulty_level || 'Не указан' }}</strong>
+        </div>
+        <div>
+          <span>Максимальный балл</span>
+          <strong>{{ currentTask.max_score }}</strong>
+        </div>
+        <div>
+          <span>Порядок в модуле</span>
+          <strong>{{ currentTask.order }}</strong>
+        </div>
+      </div>
+    </article>
+  }
+</section>

@@ -1,0 +1,156 @@
+<section class="detail-page">
+  <button class="detail-page__back" type="button" (click)="goBack()">Вернуться назад</button>
+
+  @if (errorMessage()) {
+    <div class="detail-state detail-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="detail-state">Загрузка модуля...</div>
+  } @else if (snapshot(); as data) {
+    <article class="detail-hero">
+      <div>
+        <span class="detail-hero__badge">Модуль</span>
+        <h1>{{ data.module.title }}</h1>
+        <p>{{ data.module.description || 'Описание модуля будет добавлено позже.' }}</p>
+      </div>
+
+      <div class="detail-summary">
+        <div>
+          <span>Прогресс по модулю</span>
+          <strong>{{ data.progress.completion_rate | number: '1.0-0' }}%</strong>
+        </div>
+        <div>
+          <span>Завершено уроков</span>
+          <strong>{{ data.progress.completed_lessons }} / {{ data.progress.total_lessons }}</strong>
+        </div>
+      </div>
+    </article>
+
+    <section class="detail-grid">
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Уроки</span>
+          <strong>{{ data.lessons.length }}</strong>
+        </div>
+
+        @if (data.lessons.length) {
+          <div class="stack-list">
+            @for (lesson of data.lessons; track lesson.id) {
+              <div class="stack-item">
+                <div>
+                  <h2>{{ lesson.title }}</h2>
+                  <p>{{ lesson.content.slice(0, 160) }}{{ lesson.content.length > 160 ? '...' : '' }}</p>
+                </div>
+                <a class="stack-item__button" [routerLink]="['/lessons', lesson.id]">Открыть урок</a>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="panel-card__empty">В этом модуле пока нет уроков.</div>
+        }
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Практические задания</span>
+          <strong>{{ data.tasks.length }}</strong>
+        </div>
+
+        @if (data.tasks.length) {
+          <div class="stack-list">
+            @for (task of data.tasks; track task.id) {
+              <div class="stack-item">
+                <div>
+                  <h2>{{ task.title }}</h2>
+                  <p>{{ task.description }}</p>
+                </div>
+                <a class="stack-item__button" [routerLink]="['/tasks', task.id]">Открыть задание</a>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="panel-card__empty">Практические задания пока не добавлены.</div>
+        }
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Тесты</span>
+          <strong>{{ data.tests.length }}</strong>
+        </div>
+
+        @if (data.tests.length) {
+          <div class="stack-list">
+            @for (test of data.tests; track test.id) {
+              <div class="stack-item">
+                <div>
+                  <h2>{{ test.title }}</h2>
+                  <p>{{ test.description || 'Описание теста будет добавлено позже.' }}</p>
+                </div>
+                <a class="stack-item__button" [routerLink]="['/tests', test.id]">Открыть тест</a>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="panel-card__empty">В этом модуле пока нет тестов.</div>
+        }
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Результат по теме</span>
+          <strong>{{ topicResult()?.average_percentage | number: '1.0-0' }}%</strong>
+        </div>
+
+        @if (topicResult(); as result) {
+          <div class="metric-list">
+            <div class="metric-list__item">
+              <div>
+                <h3>Средний результат</h3>
+                <p>По всем завершённым попыткам в модуле</p>
+              </div>
+              <strong>{{ result.average_percentage | number: '1.0-0' }}%</strong>
+            </div>
+            <div class="metric-list__item">
+              <div>
+                <h3>Лучший результат</h3>
+                <p>Максимальный показатель по теме</p>
+              </div>
+              <strong>{{ result.best_percentage | number: '1.0-0' }}%</strong>
+            </div>
+          </div>
+        } @else {
+          <div class="panel-card__empty">Результаты по теме появятся после прохождения тестов.</div>
+        }
+      </article>
+    </section>
+
+    <article class="panel-card">
+      <div class="panel-card__header">
+        <span>Рекомендации по теме</span>
+        <strong>{{ data.recommendations.length }}</strong>
+      </div>
+
+      @if (data.recommendations.length) {
+        <div class="recommendation-list">
+          @for (item of data.recommendations; track item.id) {
+            <div class="recommendation-item">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+              </div>
+              @if (item.resource_url) {
+                <a class="stack-item__button" [href]="item.resource_url" target="_blank" rel="noopener noreferrer">
+                  Открыть материал
+                </a>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="panel-card__empty">Рекомендации по теме пока не нужны или ещё не сформированы.</div>
+      }
+    </article>
+  }
+</section>

@@ -1,0 +1,92 @@
+<section class="attempt-page">
+  <div class="attempt-page__topbar">
+    <button class="attempt-page__back" type="button" (click)="goBack()">Вернуться к тесту</button>
+    <div class="attempt-page__timer">Таймер: {{ formatTime(timeLeftSeconds()) }}</div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="attempt-state attempt-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="attempt-state">Загрузка попытки...</div>
+  } @else if (test(); as currentTest) {
+    <article class="attempt-card">
+      <div class="attempt-card__header">
+        <div>
+          <span class="attempt-card__badge">Прохождение теста</span>
+          <h1>{{ currentTest.title }}</h1>
+        </div>
+        <div class="attempt-card__progress">Вопрос {{ questionProgress() }}</div>
+      </div>
+
+      @if (currentQuestion(); as question) {
+        <div class="question-card">
+          <h2>{{ question.text }}</h2>
+          <p>Тип: {{ question.question_type }}</p>
+
+          @if (question.answer_options.length) {
+            <div class="option-list">
+              @for (option of question.answer_options; track option.id) {
+                <label class="option-item">
+                  <input
+                    type="radio"
+                    [name]="'question-' + question.id"
+                    [checked]="getDraft(question.id).selected_option_id === option.id"
+                    (change)="updateSelectedOption(question.id, option.id)"
+                  />
+                  <span>{{ option.text }}</span>
+                </label>
+              }
+            </div>
+          } @else {
+            <textarea
+              class="question-card__textarea"
+              [value]="getDraft(question.id).text_answer"
+              (input)="updateTextAnswer(question.id, $any($event.target).value)"
+              placeholder="Введите свой ответ"
+            ></textarea>
+          }
+        </div>
+      }
+
+      @if (saveMessage()) {
+        <div class="attempt-state attempt-state--success">{{ saveMessage() }}</div>
+      }
+
+      @if (unansweredWarning()) {
+        <div class="attempt-state attempt-state--warning">{{ unansweredWarning() }}</div>
+      }
+
+      <div class="attempt-card__actions">
+        <button class="attempt-page__nav" type="button" [disabled]="currentQuestionIndex() === 0" (click)="previousQuestion()">
+          Назад
+        </button>
+        <button
+          class="attempt-page__save"
+          type="button"
+          [disabled]="isSaving()"
+          (click)="saveCurrentAnswer()"
+        >
+          {{ isSaving() ? 'Сохраняем...' : 'Сохранить ответ' }}
+        </button>
+        <button
+          class="attempt-page__nav"
+          type="button"
+          [disabled]="currentQuestionIndex() === questions().length - 1"
+          (click)="nextQuestion()"
+        >
+          Далее
+        </button>
+        <button
+          class="attempt-page__finish"
+          type="button"
+          [disabled]="isFinishing()"
+          (click)="finishTest()"
+        >
+          {{ isFinishing() ? 'Завершаем...' : 'Завершить тест' }}
+        </button>
+      </div>
+    </article>
+  }
+</section>

@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CourseCard } from '../../core/models/dashboard.models';
 import { AuthService } from '../../core/services/auth.service';
 import { CourseService } from '../../core/services/course.service';
 
 @Component({
   selector: 'app-courses-page',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './courses-page.component.html',
   styleUrl: './courses-page.component.css'
 })

@@ -1,0 +1,106 @@
+<section class="detail-page">
+  <button class="detail-page__back" type="button" (click)="goBack()">Вернуться назад</button>
+
+  @if (errorMessage()) {
+    <div class="detail-state detail-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="detail-state">Загрузка курса...</div>
+  } @else if (snapshot(); as data) {
+    <article class="detail-hero">
+      <div>
+        <span class="detail-hero__badge">Курс</span>
+        <h1>{{ data.course.title }}</h1>
+        <p>{{ data.course.description || 'Описание курса будет добавлено позже.' }}</p>
+      </div>
+
+      <div class="detail-summary">
+        <div>
+          <span>Уровень сложности</span>
+          <strong>{{ data.course.difficulty_level || 'Не указан' }}</strong>
+        </div>
+        <div>
+          <span>Общий прогресс</span>
+          <strong>{{ data.progress.completion_rate | number: '1.0-0' }}%</strong>
+        </div>
+      </div>
+    </article>
+
+    <section class="detail-grid">
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Модули курса</span>
+          <strong>{{ data.modules.length }}</strong>
+        </div>
+
+        @if (data.modules.length) {
+          <div class="stack-list">
+            @for (module of data.modules; track module.id) {
+              <div class="stack-item">
+                <div>
+                  <h2>{{ module.title }}</h2>
+                  <p>{{ module.description || 'Описание модуля будет добавлено позже.' }}</p>
+                </div>
+                <a class="stack-item__button" [routerLink]="['/modules', module.id]">Открыть модуль</a>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="panel-card__empty">В этом курсе пока нет модулей.</div>
+        }
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <span>Результаты по темам</span>
+          <strong>{{ data.topicResults.length }}</strong>
+        </div>
+
+        @if (data.topicResults.length) {
+          <div class="metric-list">
+            @for (result of data.topicResults; track result.module_id) {
+              <div class="metric-list__item">
+                <div>
+                  <h3>{{ result.module_title }}</h3>
+                  <p>Попыток: {{ result.attempts_count }}</p>
+                </div>
+                <strong>{{ result.average_percentage | number: '1.0-0' }}%</strong>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="panel-card__empty">Результаты появятся после первых попыток по темам курса.</div>
+        }
+      </article>
+    </section>
+
+    <article class="panel-card">
+      <div class="panel-card__header">
+        <span>Рекомендации по курсу</span>
+        <strong>{{ data.recommendations.length }}</strong>
+      </div>
+
+      @if (data.recommendations.length) {
+        <div class="recommendation-list">
+          @for (item of data.recommendations; track item.id) {
+            <div class="recommendation-item">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+                <small>{{ item.module_title }} • порог {{ item.trigger_score_threshold | number: '1.0-0' }}%</small>
+              </div>
+              @if (item.resource_url) {
+                <a class="stack-item__button" [href]="item.resource_url" target="_blank" rel="noopener noreferrer">
+                  Открыть материал
+                </a>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="panel-card__empty">Для этого курса пока нет персональных рекомендаций.</div>
+      }
+    </article>
+  }
+</section>

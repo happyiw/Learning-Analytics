@@ -1,0 +1,61 @@
+<section class="test-page">
+  <div class="test-page__actions">
+    @if (test()?.module_id; as moduleId) {
+      <a class="test-page__link" [routerLink]="['/modules', moduleId]">К модулю</a>
+    } @else {
+      <button class="test-page__back" type="button" (click)="goBack()">Вернуться назад</button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="test-state test-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="test-state">Загрузка теста...</div>
+  } @else if (test(); as currentTest) {
+    <article class="test-card">
+      <span class="test-card__badge">Тест</span>
+      <h1>{{ currentTest.title }}</h1>
+      <p>{{ currentTest.description || 'Описание теста будет добавлено позже.' }}</p>
+
+      <div class="test-card__grid">
+        <div>
+          <span>Лимит времени</span>
+          <strong>{{ currentTest.time_limit ? currentTest.time_limit + ' мин.' : 'Без лимита' }}</strong>
+        </div>
+        <div>
+          <span>Проходной процент</span>
+          <strong>{{ currentTest.passing_score | number: '1.0-0' }}%</strong>
+        </div>
+        <div>
+          <span>Доступные попытки</span>
+          <strong>{{ currentTest.attempts_allowed }}</strong>
+        </div>
+        <div>
+          <span>Статус</span>
+          <strong>{{ currentTest.is_active ? 'Активен' : 'Неактивен' }}</strong>
+        </div>
+      </div>
+
+      @if (activeAttempt()) {
+        <div class="test-card__resume-note">
+          У вас есть незавершённая попытка. При нажатии вы вернётесь к текущему прохождению.
+        </div>
+      }
+
+      @if (attemptsExhausted()) {
+        <div class="test-card__warning">Попытки исчерпаны. Начать тест повторно нельзя.</div>
+      }
+
+      <button
+        class="test-card__start"
+        type="button"
+        [disabled]="!currentTest.is_active || attemptsExhausted() || isStarting()"
+        (click)="startTest()"
+      >
+        {{ isStarting() ? 'Запуск...' : startButtonLabel() }}
+      </button>
+    </article>
+  }
+</section>

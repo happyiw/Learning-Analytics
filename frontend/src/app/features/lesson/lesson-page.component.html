@@ -1,0 +1,61 @@
+<section class="lesson-page">
+  @if (lesson(); as currentLesson) {
+    <div class="lesson-page__actions">
+      <a class="lesson-page__link" [routerLink]="['/modules', currentLesson.module_id]">К модулю</a>
+    </div>
+  } @else {
+    <div class="lesson-page__actions">
+      <button class="lesson-page__back" type="button" (click)="goBack()">Вернуться назад</button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="lesson-state lesson-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="lesson-state">Загрузка урока...</div>
+  } @else if (lesson(); as currentLesson) {
+    <article class="lesson-card">
+      <div class="lesson-card__header">
+        <div>
+          <span class="lesson-card__badge">Урок</span>
+          <h1>{{ currentLesson.title }}</h1>
+        </div>
+        <span class="lesson-card__status" [class.lesson-card__status--done]="currentLesson.is_completed">
+          {{ currentLesson.is_completed ? 'Завершён' : 'Не завершён' }}
+        </span>
+      </div>
+
+      <div class="lesson-card__content">
+        <p>{{ currentLesson.content }}</p>
+      </div>
+
+      @if (safeVideoUrl()) {
+        <div class="lesson-card__media">
+          <iframe [src]="safeVideoUrl()" title="Видео урока" loading="lazy" allowfullscreen></iframe>
+        </div>
+      }
+
+      @if (currentLesson.external_url) {
+        <a
+          class="lesson-page__link lesson-page__link--primary"
+          [href]="currentLesson.external_url"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Открыть внешний материал
+        </a>
+      }
+
+      <button
+        class="lesson-page__complete"
+        type="button"
+        [disabled]="currentLesson.is_completed || isCompleting()"
+        (click)="markCompleted()"
+      >
+        {{ currentLesson.is_completed ? 'Урок завершён' : isCompleting() ? 'Сохраняем...' : 'Завершить' }}
+      </button>
+    </article>
+  }
+</section>

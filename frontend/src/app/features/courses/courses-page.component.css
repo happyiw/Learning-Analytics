@@ -126,11 +126,15 @@
 }
 
 .course-card__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 3.1rem;
   border: 0;
   border-radius: 16px;
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: var(--surface-strong);
+  text-decoration: none;
   font: inherit;
   font-weight: 800;
   cursor: pointer;

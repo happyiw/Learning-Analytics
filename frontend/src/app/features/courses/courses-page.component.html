@@ -47,7 +47,7 @@
             </strong>
           </div>
 
-          <button class="course-card__button" type="button">Открыть курс</button>
+          <a class="course-card__button" [routerLink]="['/courses', course.id]">Открыть курс</a>
         </article>
       }
     </section>

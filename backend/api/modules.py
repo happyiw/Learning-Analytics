@@ -57,6 +57,15 @@ def list_module_tests(module_id: int, db: Session = Depends(get_db)) -> list[Tes
     )
 
 
+@router.get("/{module_id}/", response_model=ModuleRead)
+def retrieve_module(module_id: int, db: Session = Depends(get_db)) -> Module:
+    module = get_module_or_404(module_id, db)
+    course = db.get(Course, module.course_id)
+    if course is None or not course.is_published:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    return module
+
+
 @router.get("/{module_id}/progress/my/", response_model=ProgressRead)
 def get_module_progress(
     module_id: int,
