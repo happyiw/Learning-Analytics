@@ -9,8 +9,26 @@
         <span class="brand__title">Учебный кабинет</span>
       </a>
 
-      @if (!authService.isAuthenticated()) {
-        <nav class="site-nav" aria-label="Основная навигация">
+      <nav class="site-nav" aria-label="Основная навигация">
+        <a
+          class="site-nav__link"
+          routerLink="/"
+          [routerLinkActiveOptions]="{ exact: true }"
+          routerLinkActive="site-nav__link--active"
+        >
+          Главная
+        </a>
+
+        @if (authService.isAuthenticated()) {
+          <button class="site-nav__action" type="button">Перейти к курсам</button>
+          <button class="site-nav__action" type="button">Посмотреть аналитику</button>
+          <button class="site-nav__action" type="button">Открыть рекомендации</button>
+
+          <a class="profile-shortcut" routerLink="/profile" routerLinkActive="profile-shortcut--active">
+            <span class="profile-shortcut__avatar" aria-hidden="true">{{ profileInitials() }}</span>
+            <span class="profile-shortcut__text">{{ profileLabel() }}</span>
+          </a>
+        } @else {
           <a class="site-nav__link" routerLink="/login" routerLinkActive="site-nav__link--active">
             Вход
           </a>
@@ -21,8 +39,8 @@
           >
             Регистрация
           </a>
-        </nav>
-      }
+        }
+      </nav>
     </div>
   </header>
 

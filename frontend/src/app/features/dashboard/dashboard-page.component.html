@@ -1,0 +1,132 @@
+@if (!isAuthenticated()) {
+  <section class="landing-page">
+    <article class="landing-hero">
+      <div class="landing-hero__copy">
+        <span class="landing-hero__badge">Учебная платформа</span>
+        <h1>Учиться спокойнее, когда всё важное собрано в одном месте.</h1>
+        <p>
+          Платформа помогает держать под рукой профиль, прогресс, результаты и
+          персональные рекомендации по обучению.
+        </p>
+
+        <div class="landing-hero__actions">
+          <a class="landing-hero__cta" routerLink="/register">Перейти к обучению</a>
+          <a class="landing-hero__link" routerLink="/login">Уже есть аккаунт</a>
+        </div>
+      </div>
+
+      <div class="landing-hero__card">
+        <span>Почему это удобно</span>
+        <strong>Один кабинет для учебного пути</strong>
+        <p>
+          Наглядный прогресс, быстрый вход в личный кабинет и понятное пространство
+          для работы с курсами.
+        </p>
+      </div>
+    </article>
+
+    <section class="landing-features">
+      <article class="feature-card">
+        <strong>Личный темп</strong>
+        <p>Возвращайтесь к обучению тогда, когда удобно, и продолжайте с нужного места.</p>
+      </article>
+
+      <article class="feature-card">
+        <strong>Понятный прогресс</strong>
+        <p>Смотрите, сколько уже пройдено, и отслеживайте свои результаты без перегрузки.</p>
+      </article>
+
+      <article class="feature-card">
+        <strong>Полезные рекомендации</strong>
+        <p>Платформа помогает быстрее замечать темы, которым стоит уделить больше внимания.</p>
+      </article>
+    </section>
+  </section>
+} @else {
+  <section class="dashboard-page">
+    <article class="dashboard-hero">
+      <div>
+        <span class="dashboard-hero__badge">Главная</span>
+        <h1>Здравствуйте, {{ greetingName() }}.</h1>
+        <p>
+          Ниже собрана краткая сводка по обучению: общий прогресс, курсы, уроки,
+          тесты и рекомендации.
+        </p>
+      </div>
+
+      <div class="dashboard-progress-card">
+        <span>Общий прогресс</span>
+        <strong>{{ completionRate() }}%</strong>
+        <p>По всем материалам, которые доступны в вашем учебном кабинете.</p>
+      </div>
+    </article>
+
+    @if (errorMessage()) {
+      <div class="dashboard-state dashboard-state--error" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    @if (isLoading()) {
+      <div class="dashboard-state">Загрузка сводки...</div>
+    } @else if (snapshot(); as data) {
+      <section class="dashboard-metrics">
+        <article class="metric-card metric-card--wide">
+          <span>Карточка общего прогресса</span>
+          <strong>{{ data.progress.completed_lessons }} из {{ data.progress.total_lessons }} уроков</strong>
+          <p>
+            Завершено тестов: {{ data.progress.passed_tests }} из {{ data.progress.total_tests }}.
+          </p>
+        </article>
+
+        <article class="metric-card">
+          <span>Доступные курсы</span>
+          <strong>{{ data.coursesCount }}</strong>
+          <p>Опубликованные курсы, открытые для обучения.</p>
+        </article>
+
+        <article class="metric-card">
+          <span>Завершённые уроки</span>
+          <strong>{{ data.summary.lessons_completed }}</strong>
+          <p>Количество материалов, которые вы уже прошли.</p>
+        </article>
+
+        <article class="metric-card">
+          <span>Средний результат тестов</span>
+          <strong>{{ data.summary.average_percentage | number: '1.0-0' }}%</strong>
+          <p>Средний процент по завершённым попыткам тестирования.</p>
+        </article>
+
+        <article class="metric-card">
+          <span>Слабые темы</span>
+          <strong>{{ data.recommendations.length }}</strong>
+          <p>Темы, по которым вам уже доступны персональные рекомендации.</p>
+        </article>
+      </section>
+
+      <section class="dashboard-insights">
+        <article class="insight-card">
+          <span>Тестовые попытки</span>
+          <strong>{{ data.summary.completed_attempts }} завершено</strong>
+          <p>Всего попыток: {{ data.summary.total_attempts }}.</p>
+        </article>
+
+        <article class="insight-card">
+          <span>Освоенные курсы</span>
+          <strong>{{ data.summary.unique_courses_started }}</strong>
+          <p>Количество курсов, в которых уже есть ваша активность.</p>
+        </article>
+
+        <article class="insight-card">
+          <span>Фокус на улучшение</span>
+          <strong>{{ data.recommendations.length ? 'Есть рекомендации' : 'Отличный темп' }}</strong>
+          <p>
+            {{ data.recommendations.length
+              ? 'Загляните в рекомендации, чтобы укрепить сложные темы.'
+              : 'Сейчас система не видит выраженных слабых мест.' }}
+          </p>
+        </article>
+      </section>
+    }
+  </section>
+}

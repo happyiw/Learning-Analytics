@@ -86,9 +86,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.site-nav__link {
+.site-nav__link,
+.site-nav__action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -96,8 +98,12 @@
   padding: 0.75rem 1rem;
   border-radius: 999px;
   color: var(--text-primary);
+  background: transparent;
+  border: 0;
   text-decoration: none;
+  font: inherit;
   font-weight: 600;
+  cursor: pointer;
   transition:
     transform 180ms ease,
     background-color 180ms ease,
@@ -106,7 +112,9 @@
 }
 
 .site-nav__link:hover,
-.site-nav__link:focus-visible {
+.site-nav__link:focus-visible,
+.site-nav__action:hover,
+.site-nav__action:focus-visible {
   background: rgba(15, 23, 42, 0.06);
   transform: translateY(-1px);
 }
@@ -125,6 +133,55 @@
 
 .site-nav__link--active:not(.site-nav__link--button) {
   background: rgba(15, 23, 42, 0.06);
+}
+
+.site-nav__action {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.profile-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  margin-left: 0.4rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(120, 113, 108, 0.12);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.profile-shortcut:hover,
+.profile-shortcut:focus-visible,
+.profile-shortcut--active {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.profile-shortcut__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--surface-strong);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.profile-shortcut__text {
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .site-main {
@@ -160,7 +217,9 @@
     width: 100%;
   }
 
-  .site-nav__link {
+  .site-nav__link,
+  .site-nav__action,
+  .profile-shortcut {
     flex: 1;
   }
 

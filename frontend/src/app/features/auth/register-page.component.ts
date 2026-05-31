@@ -54,7 +54,7 @@ export class RegisterPageComponent {
       .subscribe({
         next: () => {
           this.isSubmitting.set(false);
-          void this.router.navigateByUrl('/profile');
+          void this.router.navigateByUrl('/');
         },
         error: (error: HttpErrorResponse) => {
           this.isSubmitting.set(false);
