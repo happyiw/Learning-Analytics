@@ -23,6 +23,7 @@ from backend.services.analytics import (
     build_progress,
     compute_topic_results,
 )
+from backend.services.course_access import ensure_course_access
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -35,11 +36,16 @@ def get_module_or_404(module_id: int, db: Session) -> Module:
 
 
 @router.get("/{module_id}/lessons/", response_model=list[LessonRead])
-def list_module_lessons(module_id: int, db: Session = Depends(get_db)) -> list[LessonRead]:
+def list_module_lessons(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[LessonRead]:
     module = get_module_or_404(module_id, db)
     course = db.get(Course, module.course_id)
     if course is None or not course.is_published:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     lessons = list(
         db.scalars(select(Lesson).where(Lesson.module_id == module_id).order_by(Lesson.order, Lesson.id))
     )
@@ -47,11 +53,16 @@ def list_module_lessons(module_id: int, db: Session = Depends(get_db)) -> list[L
 
 
 @router.get("/{module_id}/tests/", response_model=list[TestRead])
-def list_module_tests(module_id: int, db: Session = Depends(get_db)) -> list[Test]:
+def list_module_tests(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Test]:
     module = get_module_or_404(module_id, db)
     course = db.get(Course, module.course_id)
     if course is None or not course.is_published:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return list(
         db.scalars(
             select(Test).where(Test.module_id == module_id, Test.is_active.is_(True)).order_by(Test.id)
@@ -60,11 +71,16 @@ def list_module_tests(module_id: int, db: Session = Depends(get_db)) -> list[Tes
 
 
 @router.get("/{module_id}/", response_model=ModuleRead)
-def retrieve_module(module_id: int, db: Session = Depends(get_db)) -> Module:
+def retrieve_module(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Module:
     module = get_module_or_404(module_id, db)
     course = db.get(Course, module.course_id)
     if course is None or not course.is_published:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return module
 
 
@@ -74,7 +90,11 @@ def get_module_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProgressRead:
-    _ = get_module_or_404(module_id, db)
+    module = get_module_or_404(module_id, db)
+    course = db.get(Course, module.course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return build_progress(db, current_user.id, module_id=module_id)
 
 
@@ -84,7 +104,11 @@ def get_module_topic_results(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[TopicResultRead]:
-    _ = get_module_or_404(module_id, db)
+    module = get_module_or_404(module_id, db)
+    course = db.get(Course, module.course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return compute_topic_results(db, current_user.id, module_id=module_id)
 
 
@@ -94,7 +118,11 @@ def get_module_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[PersonalRecommendationRead]:
-    _ = get_module_or_404(module_id, db)
+    module = get_module_or_404(module_id, db)
+    course = db.get(Course, module.course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return build_personal_recommendations(db, current_user.id, module_id=module_id)
 
 

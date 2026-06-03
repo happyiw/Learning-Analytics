@@ -12,7 +12,7 @@ from backend.lesson_content import (
     serialize_lesson_blocks,
     summarize_lesson_content,
 )
-from backend.models import Course, Lesson, Test
+from backend.models import AnswerOption, Course, Lesson, Question, Test
 from backend.schemas import LessonContentBlock, LessonStatItem
 
 
@@ -28,6 +28,7 @@ def run_sqlite_migrations(engine: Engine) -> None:
     now = datetime.now(timezone.utc).isoformat()
     with engine.begin() as connection:
         _ensure_column(connection, "courses", "difficulty", "INTEGER")
+        _ensure_column(connection, "courses", "is_open", "BOOLEAN")
         _ensure_column(connection, "modules", "created_at", "DATETIME")
         _ensure_column(connection, "modules", "updated_at", "DATETIME")
         _ensure_column(connection, "lessons", "content_blocks", "TEXT")
@@ -70,6 +71,7 @@ def run_sqlite_migrations(engine: Engine) -> None:
                 """
             )
         )
+        connection.execute(text("UPDATE courses SET is_open = COALESCE(is_open, 1)"))
 
 
 def sync_intro_course_content(db: Session) -> None:
@@ -78,6 +80,7 @@ def sync_intro_course_content(db: Session) -> None:
         return
 
     course.difficulty = 1
+    course.is_open = True
 
     illustrations = {
         1: build_intro_svg_data_url("Добро пожаловать", "Карта платформы и первые шаги", "#c2410c", "#0f766e"),
@@ -242,6 +245,16 @@ def sync_intro_course_content(db: Session) -> None:
     intro_test = db.query(Test).filter(Test.id == 1).first()
     if intro_test is not None:
         intro_test.passing_score = 0
+        intro_test.time_limit = None
+        intro_test.attempts_allowed = 1
+
+        question_ids = list(
+            db.query(Question.id).filter(Question.test_id == intro_test.id).all()
+        )
+        flat_question_ids = [question_id for question_id, in question_ids]
+        if flat_question_ids:
+            for option in db.query(AnswerOption).filter(AnswerOption.question_id.in_(flat_question_ids)):
+                option.is_correct = True
 
     db.commit()
 

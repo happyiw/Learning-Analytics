@@ -40,7 +40,7 @@
 
       @if (activeAttempt()) {
         <div class="test-card__resume-note">
-          У вас есть незавершённая попытка. При нажатии вы вернётесь к текущему прохождению.
+          У вас уже есть незавершённая попытка. Сначала продолжите или завершите её, после этого можно будет начать новую.
         </div>
       }
 
@@ -48,14 +48,20 @@
         <div class="test-card__warning">Попытки исчерпаны. Начать тест повторно нельзя.</div>
       }
 
-      <button
-        class="test-card__start"
-        type="button"
-        [disabled]="!currentTest.is_active || attemptsExhausted() || isStarting()"
-        (click)="startTest()"
-      >
-        {{ isStarting() ? 'Запуск...' : startButtonLabel() }}
-      </button>
+      <div class="test-card__resume-actions">
+        @if (activeAttempt()) {
+          <a class="test-card__secondary" routerLink="/attempts">Все незавершённые попытки</a>
+        }
+
+        <button
+          class="test-card__start"
+          type="button"
+          [disabled]="!currentTest.is_active || attemptsExhausted() || isStarting()"
+          (click)="startTest()"
+        >
+          {{ isStarting() ? (activeAttempt() ? 'Открываем...' : 'Запуск...') : startButtonLabel() }}
+        </button>
+      </div>
     </article>
   }
 </section>

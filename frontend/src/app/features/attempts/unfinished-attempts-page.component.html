@@ -1,0 +1,65 @@
+<section class="attempts-page">
+  <article class="attempts-hero">
+    <span class="attempts-hero__badge">Попытки</span>
+    <h1>Продолжите незавершённые тесты с того места, где остановились.</h1>
+    <p>
+      Здесь собраны все активные попытки. Откройте нужную карточку и вернитесь к прохождению без потери ответов.
+    </p>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="attempts-state attempts-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="attempts-state">Загрузка незавершённых попыток...</div>
+  } @else if (!attempts().length) {
+    <div class="attempts-state attempts-state--empty">
+      У вас пока нет незавершённых попыток. Когда вы выйдете из теста до его завершения, он появится здесь.
+    </div>
+  } @else {
+    <section class="attempts-grid">
+      @for (attempt of attempts(); track trackByAttemptId($index, attempt)) {
+        <article class="attempt-card">
+          <div class="attempt-card__header">
+            <div>
+              <span class="attempt-card__eyebrow">{{ attempt.course_title }}</span>
+              <h2>{{ attempt.test_title }}</h2>
+            </div>
+            <span class="attempt-card__status">Незавершён</span>
+          </div>
+
+          <p class="attempt-card__meta">
+            {{ attempt.module_title || 'Без модуля' }}
+          </p>
+
+          <div class="attempt-card__grid">
+            <div>
+              <span>Отвечено</span>
+              <strong>{{ answeredLabel(attempt) }}</strong>
+            </div>
+            <div>
+              <span>Лимит</span>
+              <strong>{{ timeLimitLabel(attempt) }}</strong>
+            </div>
+            <div>
+              <span>Начало</span>
+              <strong>{{ attempt.started_at | date: 'dd.MM.yyyy HH:mm' }}</strong>
+            </div>
+            <div>
+              <span>Последняя активность</span>
+              <strong>{{ attempt.last_activity_at | date: 'dd.MM.yyyy HH:mm' }}</strong>
+            </div>
+          </div>
+
+          <div class="attempt-card__actions">
+            <a class="attempt-card__link" [routerLink]="['/tests', attempt.test_id]">Открыть тест</a>
+            <a class="attempt-card__button" [routerLink]="['/tests', attempt.test_id, 'attempt', attempt.attempt_id]">
+              Продолжить попытку
+            </a>
+          </div>
+        </article>
+      }
+    </section>
+  }
+</section>

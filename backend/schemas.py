@@ -59,6 +59,7 @@ class CourseCreate(BaseModel):
     author_id: int | None = None
     difficulty: int = Field(default=1, ge=1, le=10)
     is_published: bool = False
+    is_open: bool = True
 
 
 class CourseUpdate(BaseModel):
@@ -67,6 +68,7 @@ class CourseUpdate(BaseModel):
     author_id: int | None = None
     difficulty: int | None = Field(default=None, ge=1, le=10)
     is_published: bool | None = None
+    is_open: bool | None = None
 
 
 class CourseRead(TimestampedRead):
@@ -76,6 +78,43 @@ class CourseRead(TimestampedRead):
     author_id: int | None = None
     difficulty: int
     is_published: bool
+    is_open: bool
+
+
+class CourseEnrollmentCreate(BaseModel):
+    user_id: int
+
+
+class EnrolledCourseRead(BaseModel):
+    course_id: int
+    enrolled_at: datetime
+
+
+class CourseEnrollmentRead(BaseModel):
+    id: int
+    course_id: int
+    user_id: int
+    assigned_by_id: int | None = None
+    username: str
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    university: str | None = None
+    group: str | None = None
+    course_year: int | None = Field(default=None, ge=1, le=6)
+    created_at: datetime
+
+
+class StudentDirectoryItemRead(BaseModel):
+    id: int
+    username: str
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    university: str | None = None
+    group: str | None = None
+    course_year: int | None = Field(default=None, ge=1, le=6)
+    created_at: datetime
 
 
 class ModuleCreate(BaseModel):
@@ -344,6 +383,21 @@ class UserAnswerRead(ORMModel):
 class AttemptResultRead(BaseModel):
     attempt: TestAttemptRead
     answers: list[UserAnswerRead]
+
+
+class UnfinishedAttemptRead(BaseModel):
+    attempt_id: int
+    test_id: int
+    test_title: str
+    course_id: int
+    course_title: str
+    module_id: int | None = None
+    module_title: str | None = None
+    started_at: datetime
+    last_activity_at: datetime
+    answered_questions: int
+    total_questions: int
+    time_limit: int | None = None
 
 
 class ProgressRead(BaseModel):

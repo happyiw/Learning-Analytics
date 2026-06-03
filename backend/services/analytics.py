@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 
+from analytics.progress_service import ProgressService
 from backend.models import (
     Lesson,
     LessonProgress,
@@ -37,48 +38,11 @@ def weakness_from_percentage(average_percentage: float, attempts_count: int) -> 
 
 def get_modules_for_scope(
     db: Session,
+    user_id: int,
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[Module]:
-    if module_id is not None:
-        module = db.get(Module, module_id)
-        return [module] if module else []
-    if course_id is not None:
-        return list(
-            db.scalars(
-                select(Module).where(Module.course_id == course_id).order_by(Module.order, Module.id)
-            )
-        )
-    return list(db.scalars(select(Module).order_by(Module.order, Module.id)))
-
-
-def get_scope_test_ids(
-    db: Session,
-    course_id: int | None = None,
-    module_id: int | None = None,
-    only_active: bool = False,
-) -> list[int]:
-    stmt = select(Test.id)
-    if only_active:
-        stmt = stmt.where(Test.is_active.is_(True))
-    if module_id is not None:
-        stmt = stmt.where(Test.module_id == module_id)
-    elif course_id is not None:
-        stmt = stmt.where(Test.course_id == course_id)
-    return list(db.scalars(stmt))
-
-
-def get_scope_lesson_ids(
-    db: Session,
-    course_id: int | None = None,
-    module_id: int | None = None,
-) -> list[int]:
-    stmt = select(Lesson.id).join(Module, Module.id == Lesson.module_id)
-    if module_id is not None:
-        stmt = stmt.where(Lesson.module_id == module_id)
-    elif course_id is not None:
-        stmt = stmt.where(Module.course_id == course_id)
-    return list(db.scalars(stmt))
+    return ProgressService(db).get_modules_for_scope(user_id, course_id=course_id, module_id=module_id)
 
 
 def build_progress(
@@ -87,78 +51,12 @@ def build_progress(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> ProgressRead:
-    lesson_ids = get_scope_lesson_ids(db, course_id=course_id, module_id=module_id)
-    test_ids = get_scope_test_ids(db, course_id=course_id, module_id=module_id, only_active=True)
-
-    completed_lessons = (
-        len(
-            list(
-                db.scalars(
-                    select(LessonProgress.id).where(
-                        LessonProgress.user_id == user_id,
-                        LessonProgress.is_completed.is_(True),
-                        LessonProgress.lesson_id.in_(lesson_ids),
-                    )
-                )
-            )
-        )
-        if lesson_ids
-        else 0
-    )
-    passed_tests = (
-        len(
-            list(
-                db.scalars(
-                    select(distinct(TestAttempt.test_id)).where(
-                        TestAttempt.user_id == user_id,
-                        TestAttempt.is_passed.is_(True),
-                        TestAttempt.test_id.in_(test_ids),
-                    )
-                )
-            )
-        )
-        if test_ids
-        else 0
-    )
-    percentages = (
-        list(
-            db.scalars(
-                select(TestAttempt.percentage).where(
-                    TestAttempt.user_id == user_id,
-                    TestAttempt.finished_at.is_not(None),
-                    TestAttempt.test_id.in_(test_ids),
-                )
-            )
-        )
-        if test_ids
-        else []
-    )
-
-    total_lessons = len(lesson_ids)
-    total_tests = len(test_ids)
-    denominator = total_lessons + total_tests
-    completion_rate = round(((completed_lessons + passed_tests) / denominator) * 100, 2) if denominator else 0.0
-
+    service = ProgressService(db)
     if module_id is not None:
-        scope_type = "module"
-        scope_id = module_id
-    elif course_id is not None:
-        scope_type = "course"
-        scope_id = course_id
-    else:
-        scope_type = "global"
-        scope_id = None
-
-    return ProgressRead(
-        scope_type=scope_type,
-        scope_id=scope_id,
-        completed_lessons=completed_lessons,
-        total_lessons=total_lessons,
-        passed_tests=passed_tests,
-        total_tests=total_tests,
-        average_test_percentage=average(percentages),
-        completion_rate=completion_rate,
-    )
+        return service.get_module_progress(user_id, module_id)
+    if course_id is not None:
+        return service.get_course_progress(user_id, course_id)
+    return service.get_overall_progress(user_id)
 
 
 def compute_topic_result_row(
@@ -169,7 +67,7 @@ def compute_topic_result_row(
     existing = db.scalar(
         select(TopicResult).where(TopicResult.user_id == user_id, TopicResult.module_id == module.id)
     )
-    test_ids = get_scope_test_ids(db, module_id=module.id)
+    test_ids = ProgressService(db).get_scope_test_ids(user_id, module_id=module.id)
     attempts = (
         list(
             db.scalars(
@@ -210,7 +108,7 @@ def compute_topic_results(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[TopicResultRead]:
-    modules = get_modules_for_scope(db, course_id=course_id, module_id=module_id)
+    modules = get_modules_for_scope(db, user_id, course_id=course_id, module_id=module_id)
     return [compute_topic_result_row(db, user_id, module) for module in modules]
 
 
@@ -307,7 +205,7 @@ def build_personal_recommendations(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[PersonalRecommendationRead]:
-    modules = get_modules_for_scope(db, course_id=course_id, module_id=module_id)
+    modules = get_modules_for_scope(db, user_id, course_id=course_id, module_id=module_id)
     module_map = {module.id: module for module in modules}
     topic_results = {result.module_id: result for result in compute_topic_results(db, user_id, course_id=course_id, module_id=module_id)}
     recommendations = list(
@@ -348,12 +246,35 @@ def build_topic_result_aggregates(
     module_id: int | None = None,
     group_id: str | None = None,
 ) -> list[TopicResultAggregateRead]:
-    modules = get_modules_for_scope(db, course_id=course_id, module_id=module_id)
+    if module_id is not None:
+        module = db.get(Module, module_id)
+        modules = [module] if module else []
+    elif course_id is not None:
+        modules = list(
+            db.scalars(
+                select(Module).where(Module.course_id == course_id).order_by(Module.order, Module.id)
+            )
+        )
+    else:
+        modules = list(db.scalars(select(Module).order_by(Module.order, Module.id)))
+
     if group_id is not None:
         users = list(db.scalars(select(User).where(User.group == group_id)))
     else:
-        lesson_ids = get_scope_lesson_ids(db, course_id=course_id, module_id=module_id)
-        test_ids = get_scope_test_ids(db, course_id=course_id, module_id=module_id)
+        lesson_stmt = select(Lesson.id).join(Module, Module.id == Lesson.module_id)
+        if module_id is not None:
+            lesson_stmt = lesson_stmt.where(Lesson.module_id == module_id)
+        elif course_id is not None:
+            lesson_stmt = lesson_stmt.where(Module.course_id == course_id)
+        lesson_ids = list(db.scalars(lesson_stmt))
+
+        test_stmt = select(Test.id)
+        if module_id is not None:
+            test_stmt = test_stmt.where(Test.module_id == module_id)
+        elif course_id is not None:
+            test_stmt = test_stmt.where(Test.course_id == course_id)
+        test_ids = list(db.scalars(test_stmt))
+
         user_ids = set()
         if lesson_ids:
             user_ids.update(

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.deps import get_current_user, get_db, require_teacher_or_admin
-from backend.models import Module, Recommendation, User
+from backend.models import Course, Module, Recommendation, User
 from backend.schemas import (
     MessageRead,
     PersonalRecommendationRead,
@@ -14,6 +14,7 @@ from backend.schemas import (
     RecommendationUpdate,
 )
 from backend.services.analytics import build_personal_recommendations
+from backend.services.course_access import ensure_course_access
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 

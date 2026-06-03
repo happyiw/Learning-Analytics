@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { AnalyticsPageComponent } from './features/analytics/analytics-page.component';
+import { UnfinishedAttemptsPageComponent } from './features/attempts/unfinished-attempts-page.component';
 import { LoginPageComponent } from './features/auth/login-page.component';
 import { RegisterPageComponent } from './features/auth/register-page.component';
+import { CourseAccessPageComponent } from './features/course-access/course-access-page.component';
 import { CoursePageComponent } from './features/course/course-page.component';
 import { CoursesPageComponent } from './features/courses/courses-page.component';
 import { DashboardPageComponent } from './features/dashboard/dashboard-page.component';
@@ -38,6 +40,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'courses/:courseId/manage',
+    component: CourseAccessPageComponent,
+    canActivate: [authGuard]
+  },
+  {
     path: 'modules/:moduleId',
     component: ModulePageComponent,
     canActivate: [authGuard]
@@ -70,6 +77,11 @@ export const routes: Routes = [
   {
     path: 'analytics',
     component: AnalyticsPageComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'attempts',
+    component: UnfinishedAttemptsPageComponent,
     canActivate: [authGuard]
   },
   {

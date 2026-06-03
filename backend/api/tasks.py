@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.deps import get_db, require_teacher_or_admin
+from backend.deps import get_current_user, get_db, require_teacher_or_admin
 from backend.models import Course, Module, Task, User
 from backend.schemas import MessageRead, TaskAdminRead, TaskCreate, TaskRead, TaskUpdate
+from backend.services.course_access import ensure_course_access
 
 router = APIRouter(tags=["tasks"])
 
@@ -32,19 +33,35 @@ def ensure_module_is_public(module: Module, db: Session) -> None:
 
 
 @router.get("/api/modules/{module_id}/tasks/", response_model=list[TaskRead])
-def list_module_tasks(module_id: int, db: Session = Depends(get_db)) -> list[Task]:
+def list_module_tasks(
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Task]:
     module = get_module_or_404(module_id, db)
     ensure_module_is_public(module, db)
+    course = db.get(Course, module.course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    ensure_course_access(db, course, current_user)
     return list(
         db.scalars(select(Task).where(Task.module_id == module_id).order_by(Task.order, Task.id))
     )
 
 
 @router.get("/api/tasks/{task_id}/", response_model=TaskRead)
-def retrieve_task(task_id: int, db: Session = Depends(get_db)) -> Task:
+def retrieve_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Task:
     task = get_task_or_404(task_id, db)
     module = get_module_or_404(task.module_id, db)
     ensure_module_is_public(module, db)
+    course = db.get(Course, module.course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found.")
+    ensure_course_access(db, course, current_user)
     return task
 
 

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EMPTY, forkJoin, of } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TestAttempt, TestItem } from '../../core/models/learning.models';
 import { LearningService } from '../../core/services/learning.service';
@@ -26,7 +26,7 @@ export class TestPageComponent implements OnInit {
   readonly activeAttempt = signal<TestAttempt | null>(null);
   readonly testId = computed(() => Number(this.route.snapshot.paramMap.get('testId')));
   readonly startButtonLabel = computed(() =>
-    this.activeAttempt() ? 'Продолжить тест' : 'Начать тест'
+    this.activeAttempt() ? 'Продолжить попытку' : 'Начать тест'
   );
 
   ngOnInit(): void {
@@ -39,6 +39,7 @@ export class TestPageComponent implements OnInit {
       void this.router.navigate(['/modules', moduleId]);
       return;
     }
+
     void this.router.navigate(['/courses']);
   }
 
@@ -50,17 +51,18 @@ export class TestPageComponent implements OnInit {
 
     const activeAttempt = this.activeAttempt();
     if (activeAttempt) {
-      void this.router.navigate(['/tests', test.id, 'attempt', activeAttempt.id]);
+      this.openAttempt(activeAttempt);
       return;
     }
 
     this.isStarting.set(true);
     this.errorMessage.set('');
+
     this.learningService.startTest(test.id).subscribe({
       next: (attempt) => {
         this.activeAttempt.set(attempt);
         this.isStarting.set(false);
-        void this.router.navigate(['/tests', test.id, 'attempt', attempt.id]);
+        this.openAttempt(attempt);
       },
       error: (error: HttpErrorResponse) => {
         const detail = error.error?.detail || 'Не удалось начать тест.';
@@ -79,11 +81,12 @@ export class TestPageComponent implements OnInit {
     }
 
     this.isLoading.set(true);
+    this.errorMessage.set('');
+    this.attemptsExhausted.set(false);
+
     forkJoin({
       test: this.learningService.getTest(testId),
-      activeAttempt: this.learningService.getActiveTestAttempt(testId).pipe(
-        catchError(() => of(null))
-      )
+      activeAttempt: this.learningService.getActiveTestAttempt(testId).pipe(catchError(() => of(null)))
     }).subscribe({
       next: ({ test, activeAttempt }) => {
         this.test.set(test);
@@ -95,5 +98,14 @@ export class TestPageComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  private openAttempt(attempt: TestAttempt): void {
+    const test = this.test();
+    if (!test) {
+      return;
+    }
+
+    void this.router.navigate(['/tests', test.id, 'attempt', attempt.id]);
   }
 }

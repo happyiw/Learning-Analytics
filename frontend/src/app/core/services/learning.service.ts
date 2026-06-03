@@ -13,6 +13,7 @@ import {
   TaskItem,
   TestAttempt,
   TestItem,
+  UnfinishedAttempt,
   UserAnswer,
   UserAnswerPayload
 } from '../models/learning.models';
@@ -113,6 +114,10 @@ export class LearningService {
 
   getActiveTestAttempt(testId: number): Observable<TestAttempt> {
     return this.http.get<TestAttempt>(`/api/tests/${testId}/active-attempt/`);
+  }
+
+  getUnfinishedAttempts(): Observable<UnfinishedAttempt[]> {
+    return this.http.get<UnfinishedAttempt[]>(`/api/test-attempts/my/unfinished/`);
   }
 
   startTest(testId: number): Observable<TestAttempt> {

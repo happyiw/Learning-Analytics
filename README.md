@@ -1,20 +1,32 @@
 # Learning Analytics Platform
 
-## Актуальная версия
+## Version
 
-- Backend: `1.2.0`
-- Frontend: `1.2.0`
+- Backend: `1.3.0`
+- Frontend: `1.3.0`
 
-## Особенности
+## Current Features
 
-- FastAPI backend с JWT-аутентификацией и ролями `student`, `teacher`, `admin`
-- Angular frontend с личным кабинетом, курсами, аналитикой, рекомендациями и тестами
-- Уроки в блоковом формате: текстовые секции, callout-блоки, таблицы, графики, карточки-метрики и изображения
-- Автоматическая инициализация SQLite-схемы при старте backend
-- Вводный курс и вводный опрос уже приведены к актуальному формату контента
-- Поле сложности курса хранится как число от `1` до `10`
+- FastAPI backend with JWT authentication and roles: `student`, `teacher`, `admin`
+- Angular frontend with dashboard, profile, courses, analytics, recommendations, lessons, tasks and tests
+- Structured lessons with `content_blocks`: text sections, callouts, checklists, tables, charts, stat cards and images
+- Open and closed published courses
+- Self-enrollment for open courses
+- Manual student assignment to closed courses for `teacher` and `admin`
+- Personal analytics with progress, topic results, recommendations and test dynamics
+- Dedicated Python progress module in [analytics/progress_service.py](analytics/progress_service.py)
+- SQLite bootstrap on backend startup for schema synchronization and intro course updates
 
-## Зависимости
+## Project Structure
+
+- `backend/` — FastAPI app, API routers, models, schemas, bootstrap and backend services
+- `frontend/` — Angular application
+- `analytics/` — standalone Python analytics helpers
+- `app.db` — main SQLite database
+- `requirements.txt` — backend dependencies
+- `BackendUpdates.md` — current backend change log and API notes
+
+## Dependencies
 
 ### Backend
 
@@ -34,80 +46,51 @@
 - `rxjs ~7.8.0`
 - `tslib ^2.3.0`
 
-Dev dependencies frontend:
-
-- `@angular/build ^21.2.6`
-- `@angular/cli ^21.2.6`
-- `@angular/compiler-cli ^21.2.0`
-- `jsdom ^28.0.0`
-- `prettier ^3.8.1`
-- `typescript ~5.9.2`
-- `vitest ^4.0.8`
-
-## Структура проекта
-
-- `backend/` — FastAPI-приложение, API, модели, схемы, аналитика и bootstrap БД
-- `frontend/` — Angular-приложение с пользовательским интерфейсом
-- `app.db` — основная SQLite-база проекта
-- `requirements.txt` — Python-зависимости backend
-- `BackendUpdates.md` — актуальные backend-изменения и контракт версии
-
-## Как запускать модули
-
-### Запуск backend
-
-1. Активировать виртуальное окружение:
+## Run Backend
 
 ```powershell
 .\venv\Scripts\Activate.ps1
-```
-
-2. Установить зависимости:
-
-```powershell
 pip install -r requirements.txt
-```
-
-3. Запустить backend:
-
-```powershell
 uvicorn backend.main:app --reload
 ```
 
-4. Открыть документацию API:
+API docs:
 
 - `http://127.0.0.1:8000/docs`
 - `http://127.0.0.1:8000/redoc`
 
-### Запуск frontend
-
-1. Перейти в каталог frontend:
+## Run Frontend
 
 ```powershell
 cd frontend
-```
-
-2. Установить зависимости:
-
-```powershell
 npm install
-```
-
-3. Запустить frontend:
-
-```powershell
 npm start
 ```
 
-4. Открыть приложение:
+Frontend URL:
 
 - `http://localhost:4200`
 
-## База данных
+## Run Analytics Module Separately
 
-- По умолчанию backend использует корневой файл `app.db`
-- При старте backend автоматически:
-  - создаёт отсутствующие таблицы
-  - добавляет новые колонки для актуальной версии схемы
-  - синхронизирует вводный курс и блоковый формат уроков
-- Если backend уже был запущен до обновления, его нужно перезапустить
+The analytics helpers are plain Python modules and can be imported independently inside backend services or scripts.
+
+Example:
+
+```powershell
+python -c "from analytics.progress_service import ProgressService; print(ProgressService)"
+```
+
+## Database Notes
+
+- Backend uses the root `app.db`
+- On backend startup the application:
+  - creates missing tables
+  - adds missing SQLite columns for the current version
+  - syncs the intro course and intro test settings
+- The intro course is open for enrollment
+- The intro test has:
+  - unlimited timer
+  - one attempt
+  - passing score `0`
+  - only correct answer options

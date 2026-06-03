@@ -1,178 +1,95 @@
 # Backend Updates
 
-## Версия `1.2.0`
+## Version `1.3.0`
 
-## Что изменилось
+## Main Changes
 
-- Уроки переведены на структурированный формат `content_blocks`
-- Backend теперь поддерживает блоки уроков с типами:
-  - `rich_text`
-  - `callout`
-  - `bullets`
-  - `checklist`
-  - `table`
-  - `chart`
-  - `image`
-  - `stat_grid`
-- В `Lesson` добавлено поле `content_blocks`, при этом `content` сохраняется как краткое текстовое summary
-- В `Course` поле сложности переведено на числовой формат `difficulty: 1..10`
-- При старте backend автоматически выполняется bootstrap схемы SQLite:
-  - добавляются новые колонки
-  - синхронизируются timestamps
-  - обновляется вводный курс
-- Для учебного контента унифицированы timestamps `created_at` / `updated_at`
+- Added open and closed course mode through `Course.is_open`
+- Added course enrollment model `CourseEnrollment`
+- Added self-enrollment endpoint for open courses
+- Added teacher/admin endpoints for assigning students to closed courses
+- Added student search endpoint for course access management
+- Added backend access checks for course, module, lesson, task and test content
+- Added standalone analytics module [analytics/progress_service.py](analytics/progress_service.py)
+- Connected `build_progress(...)` to the new `ProgressService`
+- Updated intro course and intro test defaults:
+  - course is open
+  - test has unlimited timer
+  - test has one attempt
+  - passing score is `0`
+  - all answer options in the intro test are marked correct
 
-## Актуальные зависимости
+## New / Updated Models
+
+### `Course`
+
+- `difficulty: int` in range `1..10`
+- `is_published: bool`
+- `is_open: bool`
+- `created_at: datetime`
+- `updated_at: datetime`
+
+### `CourseEnrollment`
+
+- `id: int`
+- `user_id: int`
+- `course_id: int`
+- `assigned_by_id: int | None`
+- `created_at: datetime`
+
+### `ProgressService`
+
+Location:
+
+- [analytics/progress_service.py](analytics/progress_service.py)
+
+Responsibilities:
+
+- get overall user progress
+- calculate completed lessons percentage
+- calculate completed modules percentage
+- calculate progress for a specific course
+- calculate progress for a specific module
+- limit global progress scopes to courses available to the current user
+
+## API Changes
+
+### Courses
+
+- `GET /api/courses/`
+- `GET /api/courses/my/enrollments/`
+- `POST /api/courses/{course_id}/enroll/my/`
+- `GET /api/courses/{course_id}/enrollments/`
+- `POST /api/courses/{course_id}/enrollments/`
+- `GET /api/courses/students/search/`
+
+### Access Rules
+
+- published open course:
+  - student can self-enroll
+  - after enrollment student can access course content
+- published closed course:
+  - student cannot self-enroll
+  - `teacher` or `admin` can assign student manually
+- `teacher` and `admin` can access course content directly
+
+### Analytics
+
+- Existing progress endpoints now use the dedicated `ProgressService`
+- Global progress and related analytics are scoped to courses available to the user
+
+## SQLite Bootstrap Notes
+
+On startup backend keeps synchronizing `app.db`:
+
+- adds missing `courses.is_open`
+- keeps `Course.difficulty` in numeric format
+- updates timestamps where needed
+- keeps intro course and intro test in the current format
+
+## Current Dependencies
 
 - `fastapi>=0.115,<1.0`
 - `uvicorn>=0.30,<1.0`
 - `sqlalchemy>=2.0,<3.0`
 - `PyJWT>=2.8,<3.0`
-
-## Ключевые модели
-
-### `Course`
-
-- `id: int`
-- `title: str`
-- `description: str | None`
-- `author_id: int | None`
-- `difficulty: int` — значение от `1` до `10`
-- `is_published: bool`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Module`
-
-- `id: int`
-- `course_id: int`
-- `title: str`
-- `description: str | None`
-- `order: int`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Lesson`
-
-- `id: int`
-- `module_id: int`
-- `title: str`
-- `content: str` — краткое summary для списка и предпросмотра
-- `content_blocks: str | None` — JSON с блоками урока
-- `video_url: str | None`
-- `external_url: str | None`
-- `order: int`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Task`
-
-- `id: int`
-- `module_id: int`
-- `title: str`
-- `description: str`
-- `task_type: str | None`
-- `difficulty_level: str | None`
-- `explanation: str | None`
-- `max_score: float`
-- `order: int`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Test`
-
-- `id: int`
-- `course_id: int`
-- `module_id: int | None`
-- `title: str`
-- `description: str | None`
-- `time_limit: int | None`
-- `passing_score: float`
-- `attempts_allowed: int`
-- `is_active: bool`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Question`
-
-- `id: int`
-- `test_id: int`
-- `text: str`
-- `question_type: str`
-- `difficulty_level: str | None`
-- `score: float`
-- `order: int`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `AnswerOption`
-
-- `id: int`
-- `question_id: int`
-- `text: str`
-- `is_correct: bool`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-### `Recommendation`
-
-- `id: int`
-- `module_id: int`
-- `title: str`
-- `description: str`
-- `resource_url: str | None`
-- `trigger_score_threshold: float`
-- `created_at: datetime`
-- `updated_at: datetime`
-
-## Изменения API
-
-### Курсы
-
-- `GET /api/courses/`
-- `GET /api/courses/{course_id}/`
-- `POST /api/courses/`
-- `PATCH /api/courses/{course_id}/`
-
-Во всех контрактах курса используется поле `difficulty`, а не `difficulty_level`.
-
-### Уроки
-
-- `GET /api/lessons/{lesson_id}/`
-- `POST /api/lessons/`
-- `PATCH /api/lessons/{lesson_id}/`
-- `POST /api/lessons/{lesson_id}/complete/`
-
-`GET /api/lessons/{lesson_id}/` теперь возвращает:
-
-- `content` — summary урока
-- `content_blocks` — массив структурированных блоков
-- `next_lesson_id`
-- `next_lesson_title`
-
-### Модули
-
-- `GET /api/modules/{module_id}/lessons/`
-
-Теперь список уроков модуля также возвращает `content_blocks`, `created_at` и `updated_at`.
-
-## Поведение миграций
-
-При запуске `backend.main:app` приложение:
-
-1. Создаёт отсутствующие таблицы через `Base.metadata.create_all(...)`
-2. Выполняет SQLite-bootstrap для актуализации колонок
-3. Мигрирует сложность курса в новое поле `difficulty`
-4. Обогащает вводные уроки блоковым контентом
-
-## Точка входа
-
-- `backend/main.py`
-
-## Запуск
-
-```powershell
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn backend.main:app --reload
-```

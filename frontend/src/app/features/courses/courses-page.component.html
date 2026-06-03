@@ -1,15 +1,21 @@
 <section class="courses-page">
   <article class="courses-hero">
     <span class="courses-hero__badge">Курсы</span>
-    <h1>Выберите курс и продолжайте обучение в удобном темпе.</h1>
+    <h1>Выберите маршрут обучения и переходите к занятиям в удобном ритме.</h1>
     <p>
-      Здесь собраны все опубликованные курсы. Для каждого курса показаны ключевые сведения и доступность для старта.
+      Открытые курсы можно начать сразу, а для закрытых программ доступ назначает преподаватель или администратор.
     </p>
   </article>
 
   @if (errorMessage()) {
     <div class="page-state page-state--error" role="alert">
       {{ errorMessage() }}
+    </div>
+  }
+
+  @if (infoMessage()) {
+    <div class="page-state page-state--info">
+      {{ infoMessage() }}
     </div>
   }
 
@@ -25,8 +31,8 @@
         <article class="course-card">
           <div class="course-card__header">
             <span class="course-card__difficulty">Сложность {{ difficultyLabel(course) }}</span>
-            <span class="course-card__status">
-              {{ authService.isAuthenticated() ? 'Доступен для старта' : 'Открыт для просмотра' }}
+            <span class="course-card__status" [class.course-card__status--closed]="!course.is_open">
+              {{ statusLabel(course) }}
             </span>
           </div>
 
@@ -34,17 +40,26 @@
           <p>{{ course.description || 'Описание курса будет добавлено позже.' }}</p>
 
           <div class="course-card__progress">
-            <span>Прогресс</span>
-            <strong>
-              {{
-                authService.isAuthenticated()
-                  ? 'Появится после начала обучения'
-                  : 'Доступен после входа в аккаунт'
-              }}
-            </strong>
+            <span>Доступ</span>
+            <strong>{{ progressHint(course) }}</strong>
           </div>
 
-          <a class="course-card__button" [routerLink]="['/courses', course.id]">Открыть курс</a>
+          <div class="course-card__actions">
+            <button
+              class="course-card__button"
+              type="button"
+              [disabled]="isEnrolling()[course.id]"
+              (click)="startCourse(course)"
+            >
+              {{ isEnrolling()[course.id] ? 'Подключаем...' : actionLabel(course) }}
+            </button>
+
+            @if (isPrivilegedUser() && !course.is_open) {
+              <button class="course-card__secondary" type="button" (click)="openManagement(course.id)">
+                Управление доступом
+              </button>
+            }
+          </div>
         </article>
       }
     </section>

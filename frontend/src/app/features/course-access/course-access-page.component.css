@@ -1,0 +1,179 @@
+.access-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.access-page__topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.access-page__back,
+.access-page__link,
+.access-search__button,
+.student-row__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.9rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.access-page__back,
+.access-page__link {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
+}
+
+.access-state,
+.access-hero,
+.access-card {
+  border: 1px solid rgba(120, 113, 108, 0.14);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+}
+
+.access-state {
+  padding: 1rem 1.2rem;
+}
+
+.access-state--error {
+  border-color: rgba(185, 28, 28, 0.16);
+  background: rgba(254, 242, 242, 0.95);
+  color: #991b1b;
+}
+
+.access-state--success {
+  border-color: rgba(21, 128, 61, 0.16);
+  background: rgba(240, 253, 244, 0.95);
+  color: #166534;
+}
+
+.access-hero {
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(14, 116, 144, 0.12), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(202, 138, 4, 0.16), transparent 28%),
+    rgba(255, 255, 255, 0.84);
+}
+
+.access-hero__badge,
+.access-card__eyebrow {
+  display: inline-flex;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-hero h1,
+.access-card h2 {
+  margin: 0.9rem 0 0.75rem;
+}
+
+.access-hero p,
+.access-card p,
+.access-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.access-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.access-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.access-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.access-search__input {
+  min-height: 3rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+}
+
+.access-search__button,
+.student-row__button {
+  border: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--surface-strong);
+}
+
+.student-list,
+.enrollment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.student-row,
+.enrollment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: rgba(248, 244, 236, 0.88);
+}
+
+.student-row strong,
+.enrollment-row strong {
+  display: block;
+}
+
+.student-row p,
+.enrollment-row p {
+  margin-top: 0.2rem;
+}
+
+.student-row__button:disabled {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .access-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .access-page__topbar,
+  .student-row,
+  .enrollment-row,
+  .access-search {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

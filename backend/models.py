@@ -49,6 +49,15 @@ class User(CreatedAtMixin, Base):
     course_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     authored_courses: Mapped[list["Course"]] = relationship(back_populates="author")
+    course_enrollments: Mapped[list["CourseEnrollment"]] = relationship(
+        back_populates="user",
+        foreign_keys="CourseEnrollment.user_id",
+        cascade="all, delete-orphan",
+    )
+    assigned_course_enrollments: Mapped[list["CourseEnrollment"]] = relationship(
+        back_populates="assigned_by",
+        foreign_keys="CourseEnrollment.assigned_by_id",
+    )
     test_attempts: Mapped[list["TestAttempt"]] = relationship(back_populates="user")
     lesson_progress_entries: Mapped[list["LessonProgress"]] = relationship(
         back_populates="user",
@@ -69,8 +78,13 @@ class Course(TimestampMixin, Base):
     author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     difficulty: Mapped[int] = mapped_column(Integer, default=1)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_open: Mapped[bool] = mapped_column(Boolean, default=True)
 
     author: Mapped[User | None] = relationship(back_populates="authored_courses")
+    enrollments: Mapped[list["CourseEnrollment"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
     modules: Mapped[list["Module"]] = relationship(
         back_populates="course",
         cascade="all, delete-orphan",
@@ -220,6 +234,26 @@ class TestAttempt(Base):
     answers: Mapped[list["UserAnswer"]] = relationship(
         back_populates="attempt",
         cascade="all, delete-orphan",
+    )
+
+
+class CourseEnrollment(CreatedAtMixin, Base):
+    __tablename__ = "course_enrollments"
+    __table_args__ = (UniqueConstraint("user_id", "course_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
+    assigned_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    user: Mapped[User] = relationship(
+        back_populates="course_enrollments",
+        foreign_keys=[user_id],
+    )
+    course: Mapped[Course] = relationship(back_populates="enrollments")
+    assigned_by: Mapped[User | None] = relationship(
+        back_populates="assigned_course_enrollments",
+        foreign_keys=[assigned_by_id],
     )
 
 

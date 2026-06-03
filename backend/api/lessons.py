@@ -13,7 +13,7 @@ from backend.lesson_content import (
     serialize_lesson_blocks,
     summarize_lesson_content,
 )
-from backend.models import Lesson, LessonProgress, Module, User
+from backend.models import Course, Lesson, LessonProgress, Module, User
 from backend.schemas import (
     LessonCreate,
     LessonDetailRead,
@@ -22,6 +22,7 @@ from backend.schemas import (
     LessonUpdate,
     MessageRead,
 )
+from backend.services.course_access import ensure_course_access
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
 
@@ -40,6 +41,11 @@ def retrieve_lesson(
     current_user: User = Depends(get_current_user),
 ) -> LessonDetailRead:
     lesson = get_lesson_or_404(lesson_id, db)
+    module = db.get(Module, lesson.module_id)
+    course = db.get(Course, module.course_id) if module else None
+    if module is None or course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found.")
+    ensure_course_access(db, course, current_user)
     ordered_lessons = list(
         db.scalars(
             select(Lesson)
@@ -75,6 +81,11 @@ def complete_lesson(
     current_user: User = Depends(get_current_user),
 ) -> LessonProgressRead:
     lesson = get_lesson_or_404(lesson_id, db)
+    module = db.get(Module, lesson.module_id)
+    course = db.get(Course, module.course_id) if module else None
+    if module is None or course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found.")
+    ensure_course_access(db, course, current_user)
     progress = db.scalar(
         select(LessonProgress).where(
             LessonProgress.lesson_id == lesson.id,

@@ -1,0 +1,100 @@
+<section class="access-page">
+  <div class="access-page__topbar">
+    <button class="access-page__back" type="button" (click)="goBack()">К списку курсов</button>
+    @if (course(); as currentCourse) {
+      <a class="access-page__link" [routerLink]="['/courses', currentCourse.id]">Открыть курс</a>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="access-state access-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (successMessage()) {
+    <div class="access-state access-state--success">{{ successMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="access-state">Загрузка управления доступом...</div>
+  } @else if (course(); as currentCourse) {
+    <article class="access-hero">
+      <span class="access-hero__badge">Управление доступом</span>
+      <h1>{{ currentCourse.title }}</h1>
+      <p>
+        Добавляйте студентов на закрытый курс вручную. После назначения курс станет доступен студенту в его кабинете.
+      </p>
+    </article>
+
+    <section class="access-layout">
+      <article class="access-card">
+        <div class="access-card__header">
+          <div>
+            <span class="access-card__eyebrow">Назначить студента</span>
+            <h2>Поиск по каталогу студентов</h2>
+          </div>
+        </div>
+
+        <div class="access-search">
+          <input
+            class="access-search__input"
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Имя, username, email, группа или университет"
+          />
+          <button class="access-search__button" type="button" (click)="searchStudents()">Найти</button>
+        </div>
+
+        @if (!availableStudents().length) {
+          <div class="access-empty">Свободных кандидатов не найдено. Попробуйте изменить запрос.</div>
+        } @else {
+          <div class="student-list">
+            @for (student of availableStudents(); track student.id) {
+              <article class="student-row">
+                <div>
+                  <strong>{{ fullName(student) }}</strong>
+                  <p>{{ student.username }} · {{ student.group || 'Группа не указана' }}</p>
+                </div>
+                <button
+                  class="student-row__button"
+                  type="button"
+                  [disabled]="isSaving() === student.id"
+                  (click)="addStudent(student)"
+                >
+                  {{ isSaving() === student.id ? 'Добавляем...' : 'Добавить на курс' }}
+                </button>
+              </article>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="access-card">
+        <div class="access-card__header">
+          <div>
+            <span class="access-card__eyebrow">Текущий доступ</span>
+            <h2>Студенты на курсе</h2>
+          </div>
+        </div>
+
+        @if (!enrollments().length) {
+          <div class="access-empty">На курс ещё никто не назначен.</div>
+        } @else {
+          <div class="enrollment-list">
+            @for (enrollment of enrollments(); track enrollment.id) {
+              <article class="enrollment-row">
+                <strong>{{ fullName(enrollment) }}</strong>
+                <p>
+                  {{ enrollment.username }}
+                  @if (enrollment.group) {
+                    · {{ enrollment.group }}
+                  }
+                </p>
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </section>
+  }
+</section>

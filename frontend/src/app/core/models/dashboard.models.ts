@@ -38,6 +38,7 @@ export interface CourseCard {
   author_id: number | null;
   difficulty: number;
   is_published: boolean;
+  is_open: boolean;
   created_at: string;
   updated_at: string;
 }

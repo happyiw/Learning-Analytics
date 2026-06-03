@@ -209,8 +209,9 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
     }
 
     const totalSeconds = timeLimitMinutes * 60;
-    const elapsedSeconds = startedAt
-      ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+    const startedAtTimestamp = this.parseBackendDate(startedAt);
+    const elapsedSeconds = startedAtTimestamp
+      ? Math.max(0, Math.floor((Date.now() - startedAtTimestamp) / 1000))
       : 0;
     const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
 
@@ -308,5 +309,16 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
         text_answer: draft.text_answer || null
       })
     });
+  }
+
+  private parseBackendDate(value: string | null): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+    const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(normalized);
+    const timestamp = Date.parse(hasTimezone ? normalized : `${normalized}Z`);
+    return Number.isNaN(timestamp) ? null : timestamp;
   }
 }

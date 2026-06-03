@@ -29,9 +29,8 @@
                   "",
                   "const runId = Date.now().toString();",
                   "pm.collectionVariables.set('runId', runId);",
-                  "pm.collectionVariables.set('teacherUsername', `teacher_${runId}`);",
-                  "pm.collectionVariables.set('teacherPassword', 'TeacherPass123!');",
-                  "pm.collectionVariables.set('teacherEmail', `teacher_${runId}@example.com`);",
+                  "pm.collectionVariables.set('teacherUsername', 'teacher_iot');",
+                  "pm.collectionVariables.set('teacherPassword', 'teacher123');",
                   "pm.collectionVariables.set('studentUsername', `student_${runId}`);",
                   "pm.collectionVariables.set('studentPassword', 'StudentPass123!');",
                   "pm.collectionVariables.set('studentEmail', `student_${runId}@example.com`);",
@@ -86,21 +85,19 @@
           "response": []
         },
         {
-          "name": "Register Teacher",
+          "name": "Login Teacher",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Teacher registration succeeded', function () {",
-                  "    pm.response.to.have.status(201);",
+                  "pm.test('Teacher login succeeded', function () {",
+                  "    pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "pm.test('Teacher role is correct', function () {",
-                  "    pm.expect(json.role).to.eql('teacher');",
-                  "});",
-                  "pm.collectionVariables.set('teacherId', json.id);"
+                  "pm.expect(json.access_token).to.be.a('string');",
+                  "pm.collectionVariables.set('teacherAccessToken', json.access_token);"
                 ]
               }
             }
@@ -115,9 +112,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\",\n  \"email\": \"{{teacherEmail}}\",\n  \"first_name\": \"Teacher\",\n  \"last_name\": \"Runner\",\n  \"role\": \"teacher\",\n  \"university\": \"Test University\",\n  \"group\": \"TEACHERS\",\n  \"course_year\": 1\n}"
+              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/auth/register/"
+            "url": "{{baseUrl}}/api/auth/login/"
           },
           "response": []
         },
@@ -151,43 +148,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"first_name\": \"Student\",\n  \"last_name\": \"Runner\",\n  \"role\": \"student\",\n  \"university\": \"Test University\",\n  \"group\": \"{{studentGroup}}\",\n  \"course_year\": 2\n}"
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"first_name\": \"Student\",\n  \"last_name\": \"Runner\",\n  \"university\": \"Test University\",\n  \"group\": \"{{studentGroup}}\",\n  \"course_year\": 2\n}"
             },
             "url": "{{baseUrl}}/api/auth/register/"
-          },
-          "response": []
-        },
-        {
-          "name": "Login Teacher",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Teacher login succeeded', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "const json = pm.response.json();",
-                  "pm.expect(json.access_token).to.be.a('string');",
-                  "pm.collectionVariables.set('teacherAccessToken', json.access_token);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
-            },
-            "url": "{{baseUrl}}/api/auth/login/"
           },
           "response": []
         },
@@ -237,8 +200,9 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('teacherId')));",
-                  "pm.expect(json.username).to.eql(pm.collectionVariables.get('teacherUsername'));"
+                  "pm.expect(json.role).to.eql('teacher');",
+                  "pm.expect(json.username).to.eql(pm.collectionVariables.get('teacherUsername'));",
+                  "pm.collectionVariables.set('teacherId', json.id);"
                 ]
               }
             }
@@ -268,6 +232,7 @@
                   "});",
                   "const json = pm.response.json();",
                   "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('studentId')));",
+                  "pm.expect(json.role).to.eql('student');",
                   "pm.expect(json.username).to.eql(pm.collectionVariables.get('studentUsername'));"
                 ]
               }
@@ -303,6 +268,7 @@
                   "});",
                   "const json = pm.response.json();",
                   "pm.expect(json.title).to.eql(pm.collectionVariables.get('courseTitle'));",
+                  "pm.expect(json.difficulty).to.eql(5);",
                   "pm.expect(json.is_published).to.eql(true);",
                   "pm.collectionVariables.set('courseId', json.id);"
                 ]
@@ -323,7 +289,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"{{courseTitle}}\",\n  \"description\": \"Course created from Postman collection\",\n  \"difficulty_level\": \"intermediate\",\n  \"is_published\": true\n}"
+              "raw": "{\n  \"title\": \"{{courseTitle}}\",\n  \"description\": \"Course created from Postman collection\",\n  \"difficulty\": 5,\n  \"is_published\": true\n}"
             },
             "url": "{{baseUrl}}/api/courses/"
           },
@@ -365,7 +331,8 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('courseUpdatedTitle'));"
+                  "pm.expect(json.title).to.eql(pm.collectionVariables.get('courseUpdatedTitle'));",
+                  "pm.expect(json.difficulty).to.eql(8);"
                 ]
               }
             }
@@ -384,7 +351,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"{{courseUpdatedTitle}}\",\n  \"difficulty_level\": \"advanced\"\n}"
+              "raw": "{\n  \"title\": \"{{courseUpdatedTitle}}\",\n  \"difficulty\": 8\n}"
             },
             "url": "{{baseUrl}}/api/courses/{{courseId}}/"
           },
@@ -516,6 +483,30 @@
           "response": []
         },
         {
+          "name": "Read Module",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module can be read publicly', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('moduleId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Create Lesson",
           "event": [
             {
@@ -621,6 +612,31 @@
           "response": []
         },
         {
+          "name": "List Module Lessons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/lessons/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module lessons contain created lesson', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const lessonId = Number(pm.collectionVariables.get('lessonId'));",
+                  "pm.expect(json.some(function (item) { return item.id === lessonId; })).to.eql(true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Create Task",
           "event": [
             {
@@ -718,6 +734,31 @@
             "url": "{{baseUrl}}/api/tasks/{{taskId}}/"
           },
           "response": []
+        },
+        {
+          "name": "List Module Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/tasks/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module tasks contain created task', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const taskId = Number(pm.collectionVariables.get('taskId'));",
+                  "pm.expect(json.some(function (item) { return item.id === taskId; })).to.eql(true);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Recommendation",
@@ -962,6 +1003,31 @@
             "url": "{{baseUrl}}/api/tests/{{testId}}/"
           },
           "response": []
+        },
+        {
+          "name": "List Module Tests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/modules/{{moduleId}}/tests/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Module tests contain created test', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const testId = Number(pm.collectionVariables.get('testId'));",
+                  "pm.expect(json.some(function (item) { return item.id === testId; })).to.eql(true);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Question",
@@ -1365,6 +1431,36 @@
           "response": []
         },
         {
+          "name": "Get Active Test Attempt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/active-attempt/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Active attempt is returned', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('attemptId')));",
+                  "pm.expect(json.finished_at).to.eql(null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Submit Wrong Answer",
           "event": [
             {
@@ -1482,10 +1578,11 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "pm.expect(json.completed_lessons).to.eql(1);",
-                  "pm.expect(json.total_lessons).to.eql(1);",
+                  "pm.expect(json.scope_type).to.eql('global');",
+                  "pm.expect(json.completed_lessons).to.be.at.least(1);",
+                  "pm.expect(json.total_lessons).to.be.at.least(1);",
                   "pm.expect(json.passed_tests).to.eql(0);",
-                  "pm.expect(json.total_tests).to.eql(1);"
+                  "pm.expect(json.total_tests).to.be.at.least(1);"
                 ]
               }
             }
@@ -1874,8 +1971,10 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "pm.expect(json[0].module_id).to.eql(Number(pm.collectionVariables.get('moduleId')));",
-                  "pm.expect(json[0].high_weakness_count).to.be.at.least(1);"
+                  "const moduleId = Number(pm.collectionVariables.get('moduleId'));",
+                  "const item = json.find(function (entry) { return entry.module_id === moduleId; });",
+                  "pm.expect(item).to.not.eql(undefined);",
+                  "pm.expect(item.high_weakness_count).to.be.at.least(1);"
                 ]
               }
             }

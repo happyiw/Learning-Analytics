@@ -32,10 +32,12 @@ from backend.schemas import (
     TestCreate,
     TestRead,
     TestUpdate,
+    UnfinishedAttemptRead,
     UserAnswerCreate,
     UserAnswerRead,
 )
 from backend.services.analytics import upsert_topic_result
+from backend.services.course_access import ensure_course_access
 
 router = APIRouter(tags=["tests"])
 
@@ -80,12 +82,10 @@ def ensure_attempt_access(attempt: TestAttempt, current_user: User) -> None:
 
 
 def ensure_test_is_published(test: Test, db: Session, current_user: User) -> None:
-    if current_user.role in {UserRole.TEACHER, UserRole.ADMIN}:
-        return
-
     course = db.get(Course, test.course_id)
-    if course is None or not course.is_published:
+    if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found.")
+    ensure_course_access(db, course, current_user)
 
 
 def normalize_text(value: str | None) -> str:
@@ -157,6 +157,65 @@ def get_active_test_attempt(
     if attempt is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Active attempt not found.")
     return attempt
+
+
+@router.get("/api/test-attempts/my/unfinished/", response_model=list[UnfinishedAttemptRead])
+def list_unfinished_attempts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[UnfinishedAttemptRead]:
+    attempts = list(
+        db.scalars(
+            select(TestAttempt)
+            .where(
+                TestAttempt.user_id == current_user.id,
+                TestAttempt.finished_at.is_(None),
+            )
+            .options(
+                selectinload(TestAttempt.test).selectinload(Test.course),
+                selectinload(TestAttempt.test).selectinload(Test.module),
+                selectinload(TestAttempt.answers),
+            )
+            .order_by(TestAttempt.started_at.desc(), TestAttempt.id.desc())
+        )
+    )
+
+    items: list[UnfinishedAttemptRead] = []
+    for attempt in attempts:
+        test = attempt.test
+        if test is None:
+            continue
+
+        if current_user.role not in {UserRole.TEACHER, UserRole.ADMIN}:
+            course = test.course
+            if course is None or not course.is_published:
+                continue
+
+        total_questions = len(
+            list(db.scalars(select(Question.id).where(Question.test_id == test.id)))
+        )
+        last_activity_candidates = [attempt.started_at] + [
+            answer.answered_at for answer in attempt.answers if answer.answered_at is not None
+        ]
+        last_activity_at = max(last_activity_candidates)
+        items.append(
+            UnfinishedAttemptRead(
+                attempt_id=attempt.id,
+                test_id=test.id,
+                test_title=test.title,
+                course_id=test.course_id,
+                course_title=test.course.title if test.course else "Курс",
+                module_id=test.module_id,
+                module_title=test.module.title if test.module else None,
+                started_at=attempt.started_at,
+                last_activity_at=last_activity_at,
+                answered_questions=len(attempt.answers),
+                total_questions=total_questions,
+                time_limit=test.time_limit,
+            )
+        )
+
+    return items
 
 
 @router.get("/api/tests/{test_id}/questions/", response_model=list[PublicQuestionRead])

@@ -137,6 +137,21 @@ export interface AttemptResult {
   answers: UserAnswer[];
 }
 
+export interface UnfinishedAttempt {
+  attempt_id: number;
+  test_id: number;
+  test_title: string;
+  course_id: number;
+  course_title: string;
+  module_id: number | null;
+  module_title: string | null;
+  started_at: string;
+  last_activity_at: string;
+  answered_questions: number;
+  total_questions: number;
+  time_limit: number | null;
+}
+
 export interface UserAnswerPayload {
   question_id: number;
   selected_option_id?: number | null;
