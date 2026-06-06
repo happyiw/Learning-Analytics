@@ -28,6 +28,7 @@ from backend.schemas import (
     QuestionCreate,
     QuestionRead,
     QuestionUpdate,
+    TestAnalyticsRead,
     TestAttemptRead,
     TestCreate,
     TestRead,
@@ -37,6 +38,7 @@ from backend.schemas import (
     UserAnswerRead,
 )
 from backend.services.analytics import upsert_topic_result
+from backend.services.analytics import build_test_analytics
 from backend.services.course_access import ensure_course_access
 
 router = APIRouter(tags=["tests"])
@@ -157,6 +159,17 @@ def get_active_test_attempt(
     if attempt is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Active attempt not found.")
     return attempt
+
+
+@router.get("/api/tests/{test_id}/analytics/my/", response_model=TestAnalyticsRead)
+def get_my_test_analytics(
+    test_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TestAnalyticsRead:
+    test = get_test_or_404(test_id, db)
+    ensure_test_is_published(test, db, current_user)
+    return build_test_analytics(db, current_user.id, test_id)
 
 
 @router.get("/api/test-attempts/my/unfinished/", response_model=list[UnfinishedAttemptRead])

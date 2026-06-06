@@ -363,6 +363,28 @@ class TestAttemptRead(ORMModel):
     is_passed: bool
 
 
+class TestAttemptAnalyticsItemRead(BaseModel):
+    attempt_id: int
+    started_at: datetime
+    finished_at: datetime | None = None
+    completion_percentage: float
+    time_spent_seconds: int | None = None
+    status: str
+
+
+class TestAnalyticsRead(BaseModel):
+    test_id: int
+    attempts_count: int
+    completed_attempts_count: int
+    completion_percentage: float
+    best_result: float
+    average_result: float
+    last_result: float
+    time_spent_seconds: int | None = None
+    status: str
+    attempts: list[TestAttemptAnalyticsItemRead] = Field(default_factory=list)
+
+
 class UserAnswerCreate(BaseModel):
     question_id: int
     selected_option_id: int | None = None

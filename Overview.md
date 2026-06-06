@@ -1,746 +1,855 @@
 # Overview
 
+## Назначение проекта
+
+Проект реализует интерактивную образовательную среду по информационной безопасности с акцентом на анализ результатов обучения. Система поддерживает:
+
+- регистрацию и аутентификацию пользователей;
+- публикацию курсов, модулей, уроков, заданий и тестов;
+- прохождение уроков и тестов студентами;
+- назначение доступа к закрытым курсам;
+- персональную аналитику прогресса и результатов;
+- рекомендации по темам, требующим повторения.
+
+Архитектурно проект разделен на:
+
+- `backend/` — FastAPI-приложение, API, модели, схемы, bootstrap и сервисы;
+- `frontend/` — Angular-приложение;
+- `analytics/` — переиспользуемый модуль аналитики, который теперь импортируется текущим backend.
+
 ## Backend
 
 ### Общая архитектура
 
 - Backend построен на `FastAPI`.
-- Основной входной файл: `backend/main.py`.
-- Все таблицы SQLAlchemy создаются при старте приложения.
-- Авторизация выполнена через `Bearer` JWT-токен.
-- Роли пользователей: `student`, `teacher`, `admin`.
-- Доступ к части API ограничен зависимостями:
-  - `get_current_user` — нужен валидный токен.
-  - `require_teacher_or_admin` — доступ только для `teacher` и `admin`.
+- Точка входа: [backend/main.py](backend/main.py).
+- ORM: `SQLAlchemy 2.x`.
+- Основная БД: SQLite (`app.db` в корне проекта).
+- При запуске выполняются:
+  - `Base.metadata.create_all(...)`;
+  - bootstrap-синхронизация схемы для SQLite;
+  - обновление вводного курса и стартовых данных.
+- Авторизация основана на JWT Bearer token.
+- Роли пользователей:
+  - `student`;
+  - `teacher`;
+  - `admin`.
 
-### Модели
+### Слой зависимостей и доступов
+
+Основные зависимости backend:
+
+- `get_db` — выдача SQLAlchemy session;
+- `get_current_user` — текущий авторизованный пользователь;
+- `require_teacher_or_admin` — доступ только для преподавателя или администратора.
+
+Контроль доступа реализован на двух уровнях:
+
+- через зависимости FastAPI;
+- через прикладные проверки доступа к курсам и попыткам.
+
+### Модуль аналитики
+
+Папка `analytics/` больше не является полностью внешним или изолированным модулем. В актуальной реализации backend напрямую использует:
+
+- [analytics/progress_service.py](analytics/progress_service.py) — расчет прогресса по курсу, модулю и в целом;
+- [analytics/test_analytics_service.py](analytics/test_analytics_service.py) — аналитика тестовых попыток;
+- [analytics/topic_result_service.py](analytics/topic_result_service.py) — агрегированные результаты пользователя по модулю.
+
+Через эти сервисы backend получает следующие аналитические показатели:
+
+- процент выполнения теста;
+- количество попыток;
+- лучший результат;
+- средний результат;
+- последний результат;
+- время прохождения;
+- статус прохождения;
+- агрегированные результаты по модулю;
+- уровень слабости темы (`weakness_level`).
+
+Логика `weakness_level` в текущей версии:
+
+```python
+if attempts_count == 0:
+    return "not_enough_data"
+if average_percentage < 50:
+    return "high"
+if average_percentage < 70:
+    return "medium"
+if average_percentage < 85:
+    return "low"
+return "none"
+```
+
+### Основные модели данных
 
 #### 1. `User`
+
 Таблица: `users`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- учетная запись пользователя;
+- хранение роли и профиля;
+- связь с попытками, прогрессом и агрегированной аналитикой.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `username` | `String(100)` | уникальный логин, индекс |
+| `id` | `Integer` | PK |
+| `username` | `String(100)` | уникальный логин |
 | `password_hash` | `String(255)` | хеш пароля |
-| `email` | `String(255) \| null` | уникальный email, необязательный |
+| `email` | `String(255) \| null` | email |
 | `first_name` | `String(100) \| null` | имя |
 | `last_name` | `String(100) \| null` | фамилия |
-| `role` | `Enum(UserRole)` | роль пользователя, по умолчанию `student` |
-| `university` | `String(255) \| null` | университет |
+| `role` | `Enum(UserRole)` | роль |
+| `university` | `String(255) \| null` | вуз |
 | `group` | `String(100) \| null` | учебная группа |
 | `course_year` | `Integer \| null` | курс обучения |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
+| `created_at` | `DateTime` | дата создания |
 
 Связи:
 
-- `authored_courses` -> `Course[]`
-- `test_attempts` -> `TestAttempt[]`
-- `lesson_progress_entries` -> `LessonProgress[]`
-- `topic_results` -> `TopicResult[]`
-
-Особенности и ограничения:
-
-- При регистрации роль всегда создаётся как `student`.
-- В API `course_year` ограничен диапазоном `1..6`.
-- `username` и `email` не могут повторяться.
+- `authored_courses`;
+- `course_enrollments`;
+- `assigned_course_enrollments`;
+- `test_attempts`;
+- `lesson_progress_entries`;
+- `topic_results`.
 
 #### 2. `Course`
+
 Таблица: `courses`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- верхний уровень учебной структуры;
+- контейнер модулей и тестов;
+- поддержка открытых и закрытых курсов.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `title` | `String(255)` | название курса |
 | `description` | `Text \| null` | описание |
-| `author_id` | `ForeignKey(users.id) \| null` | автор курса |
-| `difficulty` | `Integer` | сложность, по умолчанию `1` |
+| `author_id` | `ForeignKey(users.id) \| null` | автор |
+| `difficulty` | `Integer` | сложность `1..10` |
 | `is_published` | `Boolean` | опубликован ли курс |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `is_open` | `Boolean` | открыт ли для самозаписи |
+| `created_at` | `DateTime` | дата создания |
+| `updated_at` | `DateTime` | дата обновления |
 
 Связи:
 
-- `author` -> `User`
-- `modules` -> `Module[]`
-- `tests` -> `Test[]`
+- `author`;
+- `enrollments`;
+- `modules`;
+- `tests`.
 
-Особенности и ограничения:
+#### 3. `CourseEnrollment`
 
-- В API `difficulty` ограничен диапазоном `1..10`.
-- Для студентов и публичных списков доступны только опубликованные курсы.
+Таблица: `course_enrollments`
 
-#### 3. `Module`
+Назначение:
+
+- фиксирует факт зачисления пользователя на курс;
+- используется для доступа к закрытым курсам;
+- поддерживает ручное назначение студентов преподавателем или администратором.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
+| --- | --- | --- |
+| `id` | `Integer` | PK |
+| `user_id` | `ForeignKey(users.id)` | студент |
+| `course_id` | `ForeignKey(courses.id)` | курс |
+| `assigned_by_id` | `ForeignKey(users.id) \| null` | кто выдал доступ |
+| `created_at` | `DateTime` | дата назначения |
+
+Ограничение:
+
+- уникальность пары `user_id + course_id`.
+
+#### 4. `Module`
+
 Таблица: `modules`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- тематический раздел внутри курса;
+- объединяет уроки, задания, тесты, рекомендации и агрегированные результаты.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `course_id` | `ForeignKey(courses.id)` | курс |
 | `title` | `String(255)` | название модуля |
 | `description` | `Text \| null` | описание |
 | `order` | `Integer` | порядок внутри курса |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `created_at` | `DateTime` | дата создания |
+| `updated_at` | `DateTime` | дата обновления |
 
-Связи:
+#### 5. `Lesson`
 
-- `course` -> `Course`
-- `lessons` -> `Lesson[]`
-- `tasks` -> `Task[]`
-- `tests` -> `Test[]`
-- `topic_results` -> `TopicResult[]`
-- `recommendations` -> `Recommendation[]`
-
-Особенности и ограничения:
-
-- Публичная выдача модуля, уроков, задач и тестов завязана на публикацию родительского курса.
-
-#### 4. `Lesson`
 Таблица: `lessons`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- хранение теоретического контента;
+- поддержка структурированного контента через `content_blocks`;
+- учет завершения урока пользователем.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `module_id` | `ForeignKey(modules.id)` | модуль |
 | `title` | `String(255)` | название урока |
-| `content` | `Text` | краткое/основное текстовое содержимое |
-| `content_blocks` | `Text \| null` | JSON с блоками контента |
+| `content` | `Text` | основной текст |
+| `content_blocks` | `Text \| null` | сериализованный JSON контент |
 | `video_url` | `String(500) \| null` | ссылка на видео |
 | `external_url` | `String(500) \| null` | внешняя ссылка |
 | `order` | `Integer` | порядок внутри модуля |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `created_at` | `DateTime` | дата создания |
+| `updated_at` | `DateTime` | дата обновления |
 
-Связи:
+Поддерживаемые типы `content_blocks`:
 
-- `module` -> `Module`
-- `progress_entries` -> `LessonProgress[]`
+- `rich_text`;
+- `callout`;
+- `bullets`;
+- `checklist`;
+- `table`;
+- `chart`;
+- `image`;
+- `stat_grid`.
 
-Особенности и ограничения:
+#### 6. `Task`
 
-- При создании урока обязательно должно быть либо `content`, либо `content_blocks`.
-- `content_blocks` поддерживает типы: `rich_text`, `callout`, `bullets`, `checklist`, `table`, `chart`, `image`, `stat_grid`.
-- При сохранении `content_blocks` сериализуются в JSON.
-
-#### 5. `Task`
 Таблица: `tasks`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- хранение практических заданий;
+- описание условий и эталонного ответа;
+- пока без полноценного UI для автоматизированной сдачи.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `module_id` | `ForeignKey(modules.id)` | модуль |
-| `title` | `String(255)` | название задания |
-| `description` | `Text` | описание задания |
+| `title` | `String(255)` | название |
+| `description` | `Text` | описание |
 | `task_type` | `String(50) \| null` | тип задания |
-| `difficulty_level` | `String(50) \| null` | уровень сложности |
-| `correct_answer` | `Text \| null` | правильный ответ |
+| `difficulty_level` | `String(50) \| null` | сложность |
+| `correct_answer` | `Text \| null` | эталонный ответ |
 | `explanation` | `Text \| null` | пояснение |
 | `max_score` | `Float` | максимальный балл |
 | `order` | `Integer` | порядок внутри модуля |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
 
-Связи:
+#### 7. `Test`
 
-- `module` -> `Module`
-
-Особенности и ограничения:
-
-- В пользовательском `TaskRead` поле `correct_answer` не возвращается.
-- `correct_answer` доступен только в admin-ответе `TaskAdminRead`.
-
-#### 6. `Test`
 Таблица: `tests`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- проверка освоения модуля или курса;
+- настройка лимита попыток и проходного балла;
+- привязка к курсу и при необходимости к модулю.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `course_id` | `ForeignKey(courses.id)` | курс |
-| `module_id` | `ForeignKey(modules.id) \| null` | модуль, если тест привязан к модулю |
-| `title` | `String(255)` | название теста |
+| `module_id` | `ForeignKey(modules.id) \| null` | модуль |
+| `title` | `String(255)` | название |
 | `description` | `Text \| null` | описание |
 | `time_limit` | `Integer \| null` | лимит времени в минутах |
-| `passing_score` | `Float` | проходной процент, по умолчанию `60` |
+| `passing_score` | `Float` | проходной процент |
 | `attempts_allowed` | `Integer` | число допустимых попыток |
 | `is_active` | `Boolean` | активен ли тест |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `created_at` | `DateTime` | дата создания |
+| `updated_at` | `DateTime` | дата обновления |
 
-Связи:
+#### 8. `Question`
 
-- `course` -> `Course`
-- `module` -> `Module`
-- `questions` -> `Question[]`
-- `attempts` -> `TestAttempt[]`
-
-Особенности и ограничения:
-
-- Студенту тест доступен только если курс опубликован.
-- Старт новой попытки запрещён, если тест неактивен или исчерпан лимит `attempts_allowed`.
-
-#### 7. `Question`
 Таблица: `questions`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `test_id` | `ForeignKey(tests.id)` | тест |
-| `text` | `Text` | текст вопроса |
-| `question_type` | `String(50)` | тип вопроса, по умолчанию `single_choice` |
-| `difficulty_level` | `String(50) \| null` | уровень сложности |
-| `score` | `Float` | вес вопроса |
-| `order` | `Integer` | порядок в тесте |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+- вопрос теста;
+- поддержка `single_choice`, `choice`, `multiple_choice` и текстовых ответов;
+- хранение веса вопроса через `score`.
 
-Связи:
+#### 9. `AnswerOption`
 
-- `test` -> `Test`
-- `answer_options` -> `AnswerOption[]`
-- `user_answers` -> `UserAnswer[]`
-
-Особенности и ограничения:
-
-- Для пользовательской выдачи используется `PublicQuestionRead`: правильность вариантов не раскрывается.
-
-#### 8. `AnswerOption`
 Таблица: `answer_options`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `question_id` | `ForeignKey(questions.id)` | вопрос |
-| `text` | `Text` | текст варианта |
-| `is_correct` | `Boolean` | правильный ли вариант |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+- варианты ответов для тестовых вопросов;
+- маркировка правильного ответа через `is_correct`.
 
-Связи:
+#### 10. `TestAttempt`
 
-- `question` -> `Question`
-- `user_answers` -> `UserAnswer[]`
-
-#### 9. `TestAttempt`
 Таблица: `test_attempts`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- хранение каждой попытки прохождения теста;
+- основа для персональной и агрегированной аналитики.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `user_id` | `ForeignKey(users.id)` | пользователь |
 | `test_id` | `ForeignKey(tests.id)` | тест |
-| `started_at` | `DateTime(timezone=True)` | начало попытки |
-| `finished_at` | `DateTime(timezone=True) \| null` | завершение попытки |
-| `score` | `Float` | набранные баллы |
+| `started_at` | `DateTime` | начало попытки |
+| `finished_at` | `DateTime \| null` | завершение |
+| `score` | `Float` | набранный балл |
 | `max_score` | `Float` | максимальный балл |
-| `percentage` | `Float` | процент |
+| `percentage` | `Float` | итоговый процент |
 | `is_passed` | `Boolean` | пройдена ли попытка |
 
-Связи:
+Особенности:
 
-- `user` -> `User`
-- `test` -> `Test`
-- `answers` -> `UserAnswer[]`
+- у пользователя может быть только одна активная незавершенная попытка на конкретный тест;
+- при повторном старте возвращается существующая активная попытка;
+- при завершении попытки пересчитываются аналитика теста и `topic_results`.
 
-Особенности и ограничения:
+#### 11. `UserAnswer`
 
-- У пользователя может быть только одна незавершённая попытка на тест; при повторном старте вернётся существующая активная попытка.
-- Результат подсчитывается при завершении попытки.
-
-#### 10. `UserAnswer`
 Таблица: `user_answers`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `attempt_id` | `ForeignKey(test_attempts.id)` | попытка |
-| `question_id` | `ForeignKey(questions.id)` | вопрос |
-| `selected_option_id` | `ForeignKey(answer_options.id) \| null` | выбранный вариант |
-| `text_answer` | `Text \| null` | текстовый ответ |
-| `is_correct` | `Boolean` | корректность ответа |
-| `score_received` | `Float` | полученный балл |
-| `answered_at` | `DateTime(timezone=True)` | время ответа |
+- ответы пользователя на вопросы в рамках попытки;
+- хранение факта правильности и полученного балла.
 
-Связи:
+Ограничение:
 
-- `attempt` -> `TestAttempt`
-- `question` -> `Question`
-- `selected_option` -> `AnswerOption`
+- уникальность пары `attempt_id + question_id`.
 
-Особенности и ограничения:
+#### 12. `LessonProgress`
 
-- Уникальность по паре `attempt_id + question_id`.
-- Для choice-вопросов обязателен `selected_option_id`.
-- Нельзя сохранить вариант ответа, который относится к другому вопросу.
-
-#### 11. `LessonProgress`
 Таблица: `lesson_progress`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `user_id` | `ForeignKey(users.id)` | пользователь |
-| `lesson_id` | `ForeignKey(lessons.id)` | урок |
-| `is_completed` | `Boolean` | завершён ли урок |
-| `completed_at` | `DateTime(timezone=True) \| null` | время завершения |
+- хранение факта завершения урока пользователем;
+- используется в расчете прогресса по модулю, курсу и системе в целом.
 
-Связи:
+Ограничение:
 
-- `user` -> `User`
-- `lesson` -> `Lesson`
+- уникальность пары `user_id + lesson_id`.
 
-Особенности и ограничения:
+#### 13. `TopicResult`
 
-- Уникальность по паре `user_id + lesson_id`.
-
-#### 12. `TopicResult`
 Таблица: `topic_results`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- агрегированный результат пользователя по модулю;
+- хранение статистики по всем завершенным попыткам тестов модуля.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
+| `id` | `Integer` | PK |
 | `user_id` | `ForeignKey(users.id)` | пользователь |
-| `module_id` | `ForeignKey(modules.id)` | модуль/тема |
-| `attempts_count` | `Integer` | число попыток |
+| `module_id` | `ForeignKey(modules.id)` | модуль |
+| `attempts_count` | `Integer` | число завершенных попыток |
 | `average_percentage` | `Float` | средний процент |
 | `best_percentage` | `Float` | лучший процент |
-| `weakness_level` | `String(50)` | уровень слабости, по умолчанию `high` |
-| `last_attempt_at` | `DateTime(timezone=True) \| null` | дата последней попытки |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `weakness_level` | `String(50)` | уровень слабости темы |
+| `last_attempt_at` | `DateTime \| null` | время последней завершенной попытки |
+| `created_at` | `DateTime` | дата создания |
+| `updated_at` | `DateTime` | дата обновления |
 
-Связи:
+Ограничение:
 
-- `user` -> `User`
-- `module` -> `Module`
+- уникальность пары `user_id + module_id`.
 
-Особенности и ограничения:
+#### 14. `Recommendation`
 
-- Уникальность по паре `user_id + module_id`.
-- Обновляется после завершения теста, если тест привязан к модулю.
-
-#### 13. `Recommendation`
 Таблица: `recommendations`
 
-Поля:
+Назначение:
 
-| Поле | Тип | Описание |
+- персонализированные рекомендации по модулю;
+- используются при недостаточном результате по теме.
+
+Ключевые поля:
+
+| Поле | Тип | Назначение |
 | --- | --- | --- |
-| `id` | `Integer` | PK, индекс |
-| `module_id` | `ForeignKey(modules.id)` | модуль, к которому относится рекомендация |
+| `id` | `Integer` | PK |
+| `module_id` | `ForeignKey(modules.id)` | модуль |
 | `title` | `String(255)` | заголовок |
 | `description` | `Text` | описание |
-| `resource_url` | `String(500) \| null` | ссылка на материал |
-| `trigger_score_threshold` | `Float` | порог, ниже которого рекомендация считается актуальной |
-| `created_at` | `DateTime(timezone=True)` | дата создания |
-| `updated_at` | `DateTime(timezone=True)` | дата обновления |
+| `resource_url` | `String(500) \| null` | внешняя ссылка |
+| `trigger_score_threshold` | `Float` | порог для показа рекомендации |
 
-Связи:
+## Backend: ключевая бизнес-логика
 
-- `module` -> `Module`
+### Доступ к курсам
 
-### Эндпоинты
+- Опубликованные открытые курсы доступны для самостоятельной записи студентом.
+- Опубликованные закрытые курсы требуют назначения через преподавателя или администратора.
+- Для студента доступ к содержимому курса проверяется через:
+  - публикацию курса;
+  - открытость курса или наличие зачисления.
 
-#### Служебный
+### Уроки
 
-| Метод | Путь | Назначение | Ограничения |
+- Урок может содержать обычный текст и набор структурированных блоков.
+- Завершение урока сохраняется в `lesson_progress`.
+- Прогресс рассчитывается по завершенным урокам и пройденным тестам.
+
+### Тесты и попытки
+
+Сценарий работы с тестом:
+
+1. Пользователь открывает карточку теста.
+2. Backend возвращает активную попытку, если она уже есть.
+3. При старте создается новая попытка только если:
+   - тест активен;
+   - не исчерпан лимит `attempts_allowed`;
+   - нет другой незавершенной попытки.
+4. Ответы сохраняются отдельно по каждому вопросу.
+5. При завершении попытки backend:
+   - суммирует полученные баллы;
+   - пересчитывает `percentage`;
+   - выставляет `is_passed`;
+   - сохраняет `finished_at`;
+   - обновляет агрегированные результаты по модулю через `TopicResultService`.
+
+### Аналитика
+
+#### `ProgressService`
+
+Рассчитывает:
+
+- прогресс по модулю;
+- прогресс по курсу;
+- общий прогресс;
+- средний процент по тестам;
+- долю завершенных уроков и модулей.
+
+#### `TestAnalyticsService`
+
+Формирует аналитику по конкретному тесту на основе `test_attempts` и `user_answers`:
+
+- `completion_percentage`;
+- `attempts_count`;
+- `completed_attempts_count`;
+- `best_result`;
+- `average_result`;
+- `last_result`;
+- `time_spent_seconds`;
+- `status`;
+- список попыток с деталями по каждой попытке.
+
+Важный момент:
+
+- отдельная таблица для тестовой аналитики не создается;
+- аналитика строится поверх уже существующих данных о попытках.
+
+#### `TopicResultService`
+
+Отвечает за:
+
+- создание или получение записи `topic_results`;
+- обновление результатов после завершения тестовой попытки;
+- вычисление среднего и лучшего процента;
+- определение уровня слабости темы;
+- получение результатов по пользователю, курсу и модулю.
+
+#### Агрегированная аналитика
+
+Backend также строит:
+
+- слабые темы пользователя;
+- сильные темы пользователя;
+- динамику результатов по датам;
+- агрегированную аналитику по группе;
+- агрегированную аналитику по курсу;
+- агрегированную аналитику по модулю.
+
+## Backend API
+
+Ниже перечислены актуальные HTTP endpoint’ы.
+
+### Служебный
+
+| Метод | Путь | Назначение |
+| --- | --- | --- |
+| `GET` | `/` | Проверка, что API запущен |
+
+### Auth
+
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/` | Проверка, что API запущен | Без авторизации |
+| `POST` | `/api/auth/register/` | Регистрация пользователя | Гость |
+| `POST` | `/api/auth/login/` | Получение JWT | Гость |
+| `GET` | `/api/auth/me/` | Текущий пользователь | Авторизованный |
 
-#### Auth
+### Courses
 
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `POST` | `/api/auth/register/` | Регистрация пользователя | `username` и `email` должны быть уникальны; роль всегда `student`; `course_year` 1..6 |
-| `POST` | `/api/auth/login/` | Получение JWT-токена | Неверные логин/пароль -> `401` |
-| `GET` | `/api/auth/me/` | Возврат текущего пользователя | Нужен Bearer-токен |
+| `GET` | `/api/courses/` | Список опубликованных курсов | Открыт |
+| `GET` | `/api/courses/my/enrollments/` | Мои зачисления | Авторизованный |
+| `POST` | `/api/courses/{course_id}/enroll/my/` | Самозапись на открытый курс | Авторизованный |
+| `GET` | `/api/courses/{course_id}/enrollments/` | Список зачисленных на курс | `teacher/admin` |
+| `POST` | `/api/courses/{course_id}/enrollments/` | Назначить студента на курс | `teacher/admin` |
+| `GET` | `/api/courses/students/search/` | Поиск студентов | `teacher/admin` |
+| `GET` | `/api/courses/{course_id}/` | Карточка курса | Авторизованный |
+| `GET` | `/api/courses/{course_id}/modules/` | Модули курса | Авторизованный |
+| `GET` | `/api/courses/{course_id}/progress/my/` | Прогресс по курсу | Авторизованный |
+| `GET` | `/api/courses/{course_id}/topic-results/my/` | Результаты по темам курса | Авторизованный |
+| `GET` | `/api/courses/{course_id}/recommendations/my/` | Рекомендации по курсу | Авторизованный |
+| `POST` | `/api/courses/` | Создать курс | `teacher/admin` |
+| `PATCH` | `/api/courses/{course_id}/` | Обновить курс | `teacher/admin` |
+| `DELETE` | `/api/courses/{course_id}/` | Удалить курс | `teacher/admin` |
 
-#### Courses
+### Modules
 
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/courses/` | Список опубликованных курсов | Возвращаются только `is_published = true` |
-| `GET` | `/api/courses/{course_id}/` | Карточка курса | Неопубликованный курс скрывается как `404` |
-| `GET` | `/api/courses/{course_id}/modules/` | Модули курса | Только для опубликованного курса |
-| `GET` | `/api/courses/{course_id}/progress/my/` | Личный прогресс по курсу | Нужен токен |
-| `GET` | `/api/courses/{course_id}/topic-results/my/` | Результаты по темам курса | Нужен токен |
-| `GET` | `/api/courses/{course_id}/recommendations/my/` | Личные рекомендации по курсу | Нужен токен |
-| `POST` | `/api/courses/` | Создание курса | Только `teacher/admin`; `author_id` должен существовать; `difficulty` 1..10 |
-| `PATCH` | `/api/courses/{course_id}/` | Обновление курса | Только `teacher/admin`; новый `author_id` должен существовать |
-| `DELETE` | `/api/courses/{course_id}/` | Удаление курса | Только `teacher/admin` |
+| `GET` | `/api/modules/{module_id}/lessons/` | Уроки модуля | Авторизованный |
+| `GET` | `/api/modules/{module_id}/tests/` | Активные тесты модуля | Авторизованный |
+| `GET` | `/api/modules/{module_id}/` | Карточка модуля | Авторизованный |
+| `GET` | `/api/modules/{module_id}/progress/my/` | Прогресс по модулю | Авторизованный |
+| `GET` | `/api/modules/{module_id}/topic-results/my/` | Результат по теме модуля | Авторизованный |
+| `GET` | `/api/modules/{module_id}/recommendations/my/` | Рекомендации по модулю | Авторизованный |
+| `POST` | `/api/modules/` | Создать модуль | `teacher/admin` |
+| `PATCH` | `/api/modules/{module_id}/` | Обновить модуль | `teacher/admin` |
+| `DELETE` | `/api/modules/{module_id}/` | Удалить модуль | `teacher/admin` |
 
-#### Modules
+### Lessons
 
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/modules/{module_id}/` | Карточка модуля | Доступен только если родительский курс опубликован |
-| `GET` | `/api/modules/{module_id}/lessons/` | Список уроков модуля | Только для модуля опубликованного курса |
-| `GET` | `/api/modules/{module_id}/tests/` | Список активных тестов модуля | Только `is_active = true`, только для опубликованного курса |
-| `GET` | `/api/modules/{module_id}/progress/my/` | Личный прогресс по модулю | Нужен токен |
-| `GET` | `/api/modules/{module_id}/topic-results/my/` | Результаты по теме модуля | Нужен токен |
-| `GET` | `/api/modules/{module_id}/recommendations/my/` | Личные рекомендации по модулю | Нужен токен |
-| `POST` | `/api/modules/` | Создание модуля | Только `teacher/admin`; `course_id` должен существовать |
-| `PATCH` | `/api/modules/{module_id}/` | Обновление модуля | Только `teacher/admin`; новый `course_id` должен существовать |
-| `DELETE` | `/api/modules/{module_id}/` | Удаление модуля | Только `teacher/admin` |
+| `GET` | `/api/lessons/{lesson_id}/` | Детальная страница урока | Авторизованный |
+| `POST` | `/api/lessons/{lesson_id}/complete/` | Отметить урок завершенным | Авторизованный |
+| `POST` | `/api/lessons/` | Создать урок | `teacher/admin` |
+| `PATCH` | `/api/lessons/{lesson_id}/` | Обновить урок | `teacher/admin` |
+| `DELETE` | `/api/lessons/{lesson_id}/` | Удалить урок | `teacher/admin` |
 
-#### Lessons
+### Tasks
 
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/lessons/{lesson_id}/` | Полный урок с флагом завершения и ссылкой на следующий урок | Нужен токен |
-| `POST` | `/api/lessons/{lesson_id}/complete/` | Отметить урок завершённым | Нужен токен; запись прогресса создаётся/обновляется по текущему пользователю |
-| `POST` | `/api/lessons/` | Создание урока | Только `teacher/admin`; `module_id` должен существовать; нужен `content` или `content_blocks` |
-| `PATCH` | `/api/lessons/{lesson_id}/` | Обновление урока | Только `teacher/admin`; при смене `module_id` модуль должен существовать |
-| `DELETE` | `/api/lessons/{lesson_id}/` | Удаление урока | Только `teacher/admin` |
+| `GET` | `/api/modules/{module_id}/tasks/` | Список заданий модуля | Авторизованный |
+| `GET` | `/api/tasks/{task_id}/` | Детальная карточка задания | Авторизованный |
+| `POST` | `/api/tasks/` | Создать задание | `teacher/admin` |
+| `PATCH` | `/api/tasks/{task_id}/` | Обновить задание | `teacher/admin` |
+| `DELETE` | `/api/tasks/{task_id}/` | Удалить задание | `teacher/admin` |
 
-#### Tasks
+### Tests, Questions, Attempts
 
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/modules/{module_id}/tasks/` | Список задач модуля | Только для опубликованного курса |
-| `GET` | `/api/tasks/{task_id}/` | Получение одной задачи | Только для опубликованного курса |
-| `POST` | `/api/tasks/` | Создание задачи | Только `teacher/admin`; `module_id` должен существовать |
-| `PATCH` | `/api/tasks/{task_id}/` | Обновление задачи | Только `teacher/admin`; при смене `module_id` модуль должен существовать |
-| `DELETE` | `/api/tasks/{task_id}/` | Удаление задачи | Только `teacher/admin` |
+| `GET` | `/api/tests/{test_id}/` | Карточка теста | Авторизованный |
+| `GET` | `/api/tests/{test_id}/active-attempt/` | Активная попытка | Авторизованный |
+| `GET` | `/api/tests/{test_id}/analytics/my/` | Аналитика тестовых попыток пользователя | Авторизованный |
+| `GET` | `/api/test-attempts/my/unfinished/` | Незавершенные попытки пользователя | Авторизованный |
+| `GET` | `/api/tests/{test_id}/questions/` | Вопросы теста для прохождения | Авторизованный |
+| `POST` | `/api/tests/{test_id}/start/` | Начать или продолжить попытку | Авторизованный |
+| `POST` | `/api/test-attempts/{attempt_id}/answers/` | Сохранить ответ на вопрос | Авторизованный |
+| `POST` | `/api/test-attempts/{attempt_id}/finish/` | Завершить попытку | Авторизованный |
+| `GET` | `/api/test-attempts/{attempt_id}/result/` | Результат попытки | Авторизованный |
+| `POST` | `/api/tests/` | Создать тест | `teacher/admin` |
+| `PATCH` | `/api/tests/{test_id}/` | Обновить тест | `teacher/admin` |
+| `DELETE` | `/api/tests/{test_id}/` | Удалить тест | `teacher/admin` |
+| `POST` | `/api/questions/` | Создать вопрос | `teacher/admin` |
+| `PATCH` | `/api/questions/{question_id}/` | Обновить вопрос | `teacher/admin` |
+| `DELETE` | `/api/questions/{question_id}/` | Удалить вопрос | `teacher/admin` |
+| `POST` | `/api/answer-options/` | Создать вариант ответа | `teacher/admin` |
+| `PATCH` | `/api/answer-options/{option_id}/` | Обновить вариант ответа | `teacher/admin` |
+| `DELETE` | `/api/answer-options/{option_id}/` | Удалить вариант ответа | `teacher/admin` |
 
-Примечание:
+### Recommendations
 
-- Пользовательские ответы по задачам в текущем backend не реализованы.
-- Публичное чтение не возвращает `correct_answer`.
-
-#### Tests, Questions, Answer Options, Attempts
-
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/tests/{test_id}/` | Карточка теста | Нужен токен; студент видит только тесты опубликованных курсов |
-| `GET` | `/api/tests/{test_id}/active-attempt/` | Текущая незавершённая попытка пользователя | Нужен токен; `404`, если активной попытки нет |
-| `GET` | `/api/tests/{test_id}/questions/` | Вопросы теста без признака правильности вариантов | Нужен токен |
-| `POST` | `/api/tests/{test_id}/start/` | Начать попытку теста | Нужен токен; тест должен быть активным; больше `attempts_allowed` нельзя; если активная попытка уже есть, вернётся она |
-| `POST` | `/api/test-attempts/{attempt_id}/answers/` | Сохранить/обновить ответ на вопрос | Нужен токен; попытка должна быть незавершённой; нельзя отвечать на вопрос другого теста |
-| `POST` | `/api/test-attempts/{attempt_id}/finish/` | Завершить попытку и подсчитать результат | Нужен токен; повторно завершить нельзя |
-| `GET` | `/api/test-attempts/{attempt_id}/result/` | Получить результат попытки и список ответов | Нужен токен; доступ только владельцу или `teacher/admin` |
-| `POST` | `/api/tests/` | Создание теста | Только `teacher/admin`; `course_id` обязателен и должен существовать; `module_id`, если передан, тоже должен существовать |
-| `PATCH` | `/api/tests/{test_id}/` | Обновление теста | Только `teacher/admin` |
-| `DELETE` | `/api/tests/{test_id}/` | Удаление теста | Только `teacher/admin` |
-| `POST` | `/api/questions/` | Создание вопроса | Только `teacher/admin`; `test_id` должен существовать |
-| `PATCH` | `/api/questions/{question_id}/` | Обновление вопроса | Только `teacher/admin`; новый `test_id` должен существовать |
-| `DELETE` | `/api/questions/{question_id}/` | Удаление вопроса | Только `teacher/admin` |
-| `POST` | `/api/answer-options/` | Создание варианта ответа | Только `teacher/admin`; `question_id` должен существовать |
-| `PATCH` | `/api/answer-options/{option_id}/` | Обновление варианта ответа | Только `teacher/admin`; новый `question_id` должен существовать |
-| `DELETE` | `/api/answer-options/{option_id}/` | Удаление варианта ответа | Только `teacher/admin` |
+| `GET` | `/api/recommendations/my/` | Персональные рекомендации | Авторизованный |
+| `GET` | `/api/recommendations/` | Все рекомендации | `teacher/admin` |
+| `POST` | `/api/recommendations/` | Создать рекомендацию | `teacher/admin` |
+| `GET` | `/api/recommendations/{recommendation_id}/` | Одна рекомендация | `teacher/admin` |
+| `PATCH` | `/api/recommendations/{recommendation_id}/` | Обновить рекомендацию | `teacher/admin` |
+| `DELETE` | `/api/recommendations/{recommendation_id}/` | Удалить рекомендацию | `teacher/admin` |
 
-Дополнительные ограничения логики тестирования:
+### Analytics
 
-- Для типов `single_choice`, `choice`, `multiple_choice` обязателен `selected_option_id`.
-- Если выбранный вариант не относится к вопросу, возвращается `400`.
-- Для текстовых вопросов сравнение выполняется по нормализованному тексту.
-- Если у текстового вопроса нет правильных вариантов, любой непустой ответ считается зачтённым.
-
-#### Recommendations
-
-| Метод | Путь | Назначение | Ограничения |
+| Метод | Путь | Назначение | Доступ |
 | --- | --- | --- | --- |
-| `GET` | `/api/recommendations/my/` | Все персональные рекомендации пользователя | Нужен токен |
-| `GET` | `/api/recommendations/` | Список всех рекомендаций | Только `teacher/admin` |
-| `POST` | `/api/recommendations/` | Создание рекомендации | Только `teacher/admin`; `module_id` должен существовать |
-| `GET` | `/api/recommendations/{recommendation_id}/` | Получить рекомендацию | Только `teacher/admin` |
-| `PATCH` | `/api/recommendations/{recommendation_id}/` | Обновить рекомендацию | Только `teacher/admin`; новый `module_id` должен существовать |
-| `DELETE` | `/api/recommendations/{recommendation_id}/` | Удалить рекомендацию | Только `teacher/admin` |
-
-#### Analytics
-
-| Метод | Путь | Назначение | Ограничения |
-| --- | --- | --- | --- |
-| `GET` | `/api/progress/my/` | Общий прогресс пользователя | Нужен токен |
-| `GET` | `/api/topic-results/my/` | Все результаты пользователя по темам | Нужен токен |
-| `GET` | `/api/analytics/my/summary/` | Сводная статистика пользователя | Нужен токен |
-| `GET` | `/api/analytics/my/weak-topics/` | Слабые темы пользователя | Нужен токен |
-| `GET` | `/api/analytics/my/best-topics/` | Сильные темы пользователя | Нужен токен |
-| `GET` | `/api/analytics/my/dynamics/` | Динамика попыток по датам | Нужен токен |
-| `GET` | `/api/analytics/groups/{group_id}/topic-results/` | Агрегированная аналитика по группе | Только `teacher/admin`; группа должна существовать |
-| `GET` | `/api/analytics/courses/{course_id}/topic-results/` | Агрегированная аналитика по курсу | Только `teacher/admin`; курс должен существовать |
-| `GET` | `/api/analytics/modules/{module_id}/topic-results/` | Агрегированная аналитика по модулю | Только `teacher/admin`; модуль должен существовать |
+| `GET` | `/api/progress/my/` | Общий прогресс | Авторизованный |
+| `GET` | `/api/topic-results/my/` | Все результаты по темам | Авторизованный |
+| `GET` | `/api/analytics/my/summary/` | Сводная аналитика пользователя | Авторизованный |
+| `GET` | `/api/analytics/my/weak-topics/` | Слабые темы | Авторизованный |
+| `GET` | `/api/analytics/my/best-topics/` | Сильные темы | Авторизованный |
+| `GET` | `/api/analytics/my/dynamics/` | Динамика тестовых результатов | Авторизованный |
+| `GET` | `/api/analytics/groups/{group_id}/topic-results/` | Аналитика по группе | `teacher/admin` |
+| `GET` | `/api/analytics/courses/{course_id}/topic-results/` | Аналитика по курсу | `teacher/admin` |
+| `GET` | `/api/analytics/modules/{module_id}/topic-results/` | Аналитика по модулю | `teacher/admin` |
 
 ## Frontend
 
-### Общая структура
+### Общая архитектура
 
-- Frontend написан на `Angular`.
-- Общая оболочка приложения содержит:
-  - верхнюю навигацию;
-  - основной контент через `router-outlet`;
-  - футер.
-- Для авторизованного пользователя в хедере доступны ссылки на курсы, аналитику, рекомендации и профиль.
-- Для гостя доступны ссылки на вход и регистрацию.
+- Frontend реализован на `Angular`.
+- Основной routing-файл: [frontend/src/app/app.routes.ts](frontend/src/app/app.routes.ts).
+- Основная оболочка приложения: [frontend/src/app/app.html](frontend/src/app/app.html).
+- Используются:
+  - route guards для авторизации;
+  - HTTP interceptor для токена;
+  - сервисы для работы с auth, курсами, обучением, рекомендациями и аналитикой.
 
-### Страницы текущей версии
+### Навигация в текущей версии
+
+Для гостя доступны:
+
+- главная;
+- вход;
+- регистрация.
+
+Для авторизованного пользователя доступны:
+
+- курсы;
+- аналитика;
+- рекомендации;
+- незавершенные попытки;
+- профиль.
+
+### Маршруты и страницы
 
 #### `/` и `/dashboard`
+
 Компонент: `DashboardPageComponent`
 
-Содержимое:
+Функции:
 
-- Для гостя: лендинг с описанием платформы, преимуществами, кнопками входа и регистрации.
-- Для авторизованного пользователя: главная сводка по обучению.
-- Показываются:
-  - общий прогресс;
-  - число доступных курсов;
-  - число завершённых уроков;
-  - средний процент по тестам;
-  - число рекомендаций;
-  - число завершённых тестовых попыток;
-  - число курсов, в которых уже была активность.
-
-Ограничения:
-
-- `/dashboard` открыт без guard, но фактическая аналитическая часть загружается только для авторизованного пользователя.
+- лендинг для гостя;
+- персональная сводка для авторизованного пользователя;
+- отображение общего прогресса;
+- вывод метрик обучения и рекомендаций.
 
 #### `/login`
+
 Компонент: `LoginPageComponent`
 
-Содержимое:
+Функции:
 
-- форма входа;
-- поля `username` и `password`;
-- сообщения валидации и ошибки;
-- ссылка на регистрацию.
-
-Ограничения:
-
-- Доступен только гостю (`guestGuard`).
-- Авторизованный пользователь перенаправляется на `/`.
+- вход по `username` и `password`;
+- получение JWT;
+- обработка ошибок авторизации.
 
 #### `/register`
+
 Компонент: `RegisterPageComponent`
 
-Содержимое:
+Функции:
 
-- форма регистрации;
-- поля `username`, `password`, `email`, `first_name`, `last_name`, `university`, `group`, `course_year`;
-- валидация формы;
-- ссылка на страницу входа.
-
-Ограничения:
-
-- Доступен только гостю (`guestGuard`).
-- Пароль минимум 6 символов.
-- `course_year` ограничен диапазоном `1..6`.
+- регистрация студента;
+- заполнение профиля;
+- клиентская валидация полей.
 
 #### `/courses`
+
 Компонент: `CoursesPageComponent`
 
-Содержимое:
+Функции:
 
-- список опубликованных курсов в виде карточек;
-- у карточки выводятся:
-  - название;
-  - описание;
-  - сложность;
-  - статус доступности;
-  - кнопка перехода к курсу.
-
-Ограничения:
-
-- Страница открыта без guard.
-- В API подгружаются только опубликованные курсы.
+- список опубликованных курсов;
+- карточки курсов;
+- переход к конкретному курсу.
 
 #### `/courses/:courseId`
+
 Компонент: `CoursePageComponent`
 
-Содержимое:
+Функции:
 
-- детальная страница курса;
-- шапка с названием, описанием, сложностью и общим прогрессом;
-- список модулей курса;
-- список результатов по темам курса;
-- список персональных рекомендаций по курсу.
+- подробная страница курса;
+- список модулей;
+- прогресс по курсу;
+- результаты по темам курса;
+- рекомендации по курсу.
 
-Ограничения:
+#### `/courses/:courseId/manage`
 
-- Доступна только авторизованному пользователю (`authGuard`).
+Компонент: `CourseAccessPageComponent`
+
+Функции:
+
+- управление доступом к курсу;
+- просмотр текущих зачислений;
+- поиск студентов;
+- назначение студента на закрытый курс.
+
+Особенность:
+
+- маршрут защищен `authGuard`;
+- внутри страницы дополнительно проверяется, что пользователь имеет роль `teacher` или `admin`.
 
 #### `/modules/:moduleId`
+
 Компонент: `ModulePageComponent`
 
-Содержимое:
+Функции:
 
-- детальная страница модуля;
+- страница модуля;
 - прогресс по модулю;
 - список уроков;
-- список практических заданий;
 - список тестов;
 - карточка результата по теме;
 - рекомендации по теме.
 
-Ограничения:
-
-- Доступна только авторизованному пользователю (`authGuard`).
-
 #### `/lessons/:lessonId`
+
 Компонент: `LessonPageComponent`
 
-Содержимое:
+Функции:
 
-- детальная страница урока;
-- статус завершения урока;
-- краткое описание;
-- блочный контент урока:
-  - текстовые блоки;
-  - callout;
-  - списки;
-  - таблицы;
-  - графики;
-  - изображения;
-  - сетки со статистикой;
-- встроенное видео;
-- внешняя ссылка на материал;
-- кнопка завершения урока;
+- просмотр урока;
+- отображение `content_blocks`;
+- завершение урока;
 - переход к следующему уроку.
 
-Ограничения:
-
-- Доступна только авторизованному пользователю (`authGuard`).
-
 #### `/tasks/:taskId`
+
 Компонент: `TaskPageComponent`
 
-Содержимое:
+Функции:
 
-- просмотр одного практического задания;
-- название и описание;
-- тип задания;
-- уровень сложности;
-- максимальный балл;
-- порядок внутри модуля.
+- информационный просмотр задания;
+- отображение описания, сложности и максимального балла.
 
-Ограничения:
+Ограничение:
 
-- Доступна только авторизованному пользователю (`authGuard`).
-- Интерфейса сдачи решения в текущей версии нет.
+- отдельного UI для сдачи задания и оценки решения пока нет.
 
 #### `/tests/:testId`
+
 Компонент: `TestPageComponent`
 
-Содержимое:
+Функции:
 
 - карточка теста;
-- описание теста;
-- лимит времени;
-- проходной процент;
-- число доступных попыток;
-- статус активности;
-- уведомление о незавершённой попытке;
-- кнопка начала или продолжения теста.
-
-Ограничения:
-
-- Доступна только авторизованному пользователю (`authGuard`).
-- При исчерпании попыток кнопка старта блокируется.
+- вывод ограничений по времени и попыткам;
+- старт новой попытки;
+- переход к уже существующей незавершенной попытке.
 
 #### `/tests/:testId/attempt/:attemptId`
+
 Компонент: `TestAttemptPageComponent`
 
-Содержимое:
+Функции:
 
-- экран прохождения теста;
-- таймер;
-- текущий вопрос;
-- навигация по вопросам;
-- варианты ответа или поле текстового ответа;
-- ручное сохранение ответа;
-- автосохранение черновика;
-- завершение теста;
-- предупреждение о незаполненных вопросах.
+- прохождение теста;
+- навигация между вопросами;
+- сохранение ответов;
+- завершение попытки;
+- восстановление незавершенной работы.
 
-Ограничения:
+#### `/attempts`
 
-- Доступна только авторизованному пользователю (`authGuard`).
-- При истечении таймера тест завершается автоматически.
+Компонент: `UnfinishedAttemptsPageComponent`
+
+Функции:
+
+- список незавершенных тестовых попыток;
+- информация о курсе, модуле, дате последней активности;
+- отображение количества отвеченных вопросов;
+- переход к продолжению прохождения теста.
 
 #### `/recommendations`
+
 Компонент: `RecommendationsPageComponent`
 
-Содержимое:
+Функции:
 
-- страница персональных рекомендаций;
-- фильтр по области:
-  - все;
-  - по курсу;
-  - по модулю;
-- карточки рекомендаций с названием, описанием, порогом, текущим результатом и ссылкой на материал.
-
-Ограничения:
-
-- Доступна только авторизованному пользователю (`authGuard`).
-- Для фильтра по курсу и модулю пользователь вручную вводит `ID`.
+- просмотр персональных рекомендаций;
+- фильтрация по курсу и модулю;
+- отображение связи между рекомендацией и текущим результатом по теме.
 
 #### `/analytics`
+
 Компонент: `AnalyticsPageComponent`
 
-Содержимое:
+Функции:
 
 - персональная аналитика пользователя;
-- карточки со сводными метриками;
-- линейный график динамики результатов по датам;
-- диаграмма результатов по модулям;
-- таблица слабых тем;
-- таблица сильных тем;
+- карточки сводных показателей;
+- динамика результатов тестовых попыток;
+- таблицы сильных и слабых тем;
 - полная таблица результатов по темам.
 
-Ограничения:
+Примечание:
 
-- Доступна только авторизованному пользователю (`authGuard`).
+- backend уже поддерживает отдельный endpoint аналитики конкретного теста;
+- в текущем frontend эта аналитика еще не вынесена в отдельный экран.
 
 #### `/profile`
+
 Компонент: `ProfilePageComponent`
 
-Содержимое:
+Функции:
 
-- страница профиля пользователя;
-- ФИО;
-- `username`;
-- `email`;
-- университет;
-- группа;
-- курс обучения;
-- дата создания аккаунта;
+- профиль пользователя;
+- персональные данные;
 - роль;
-- кнопка выхода.
-
-Ограничения:
-
-- Доступна только авторизованному пользователю (`authGuard`).
+- выход из системы.
 
 #### `**`
 
-- Все неизвестные маршруты перенаправляются на `/`.
+- все неизвестные маршруты перенаправляются на `/`.
 
-### Что важно про текущую версию frontend
+## Что важно про текущую версию
 
-- В интерфейсе есть пользовательский поток для студента: регистрация, вход, просмотр курсов, прохождение уроков и тестов, просмотр аналитики и рекомендаций.
-- Отдельных экранов для администрирования курсов, модулей, уроков, задач, тестов, вопросов и рекомендаций сейчас нет, хотя backend API для этого уже существует.
-- Страница задач сейчас только информационная: решения и оценивание через UI не реализованы.
+### Сильные стороны реализации
+
+- backend уже покрывает полный контур учебной платформы;
+- аналитический модуль интегрирован в текущее приложение, а не существует отдельно;
+- система поддерживает как открытые, так и закрытые курсы;
+- есть восстановление незавершенных тестовых попыток;
+- есть персональная и агрегированная аналитика;
+- данные подходят для демонстрации логики ВКР по анализу результатов обучения.
+
+### Текущие ограничения
+
+- отдельного административного frontend-интерфейса для полного управления всеми сущностями пока нет;
+- практические задания пока представлены как информационные карточки без интерфейса сдачи;
+- аналитика конкретного теста уже доступна на backend, но еще не выведена отдельным экраном на frontend;
+- проект использует SQLite, что удобно для ВКР и демонстрации, но не является целевой production-конфигурацией.
+
+### Что особенно важно для темы ВКР
+
+В обновленной реализации система анализирует обучение не только через бинарную модель "правильно/неправильно", но и через набор метрик, которые важны для исследовательской и прикладной части ВКР:
+
+- процент выполнения теста;
+- количество попыток;
+- лучший результат;
+- средний результат;
+- последний результат;
+- время прохождения;
+- статус прохождения;
+- агрегированные результаты по модулю;
+- уровень слабости темы;
+- персональные рекомендации на основе результата.

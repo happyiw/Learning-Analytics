@@ -8,23 +8,28 @@
 ## Current Features
 
 - FastAPI backend with JWT authentication and roles: `student`, `teacher`, `admin`
-- Angular frontend with dashboard, profile, courses, analytics, recommendations, lessons, tasks and tests
-- Structured lessons with `content_blocks`: text sections, callouts, checklists, tables, charts, stat cards and images
+- Angular frontend with dashboard, profile, courses, analytics, recommendations, lessons, tasks, and tests
+- Structured lessons with `content_blocks`: text sections, callouts, checklists, tables, charts, stat cards, and images
 - Open and closed published courses
 - Self-enrollment for open courses
 - Manual student assignment to closed courses for `teacher` and `admin`
-- Personal analytics with progress, topic results, recommendations and test dynamics
-- Dedicated Python progress module in [analytics/progress_service.py](analytics/progress_service.py)
+- Personal analytics with progress, topic results, recommendations, test dynamics, and per-test attempt analytics
+- Dedicated analytics module in `analytics/`:
+  - [analytics/progress_service.py](analytics/progress_service.py)
+  - [analytics/test_analytics_service.py](analytics/test_analytics_service.py)
+  - [analytics/topic_result_service.py](analytics/topic_result_service.py)
+- Test analytics tracks completion percentage, attempts count, best result, average result, last result, completion time, and status
+- Topic results are aggregated per module and persisted in `topic_results`
 - SQLite bootstrap on backend startup for schema synchronization and intro course updates
 
 ## Project Structure
 
-- `backend/` — FastAPI app, API routers, models, schemas, bootstrap and backend services
-- `frontend/` — Angular application
-- `analytics/` — standalone Python analytics helpers
-- `app.db` — main SQLite database
-- `requirements.txt` — backend dependencies
-- `BackendUpdates.md` — current backend change log and API notes
+- `backend/` - FastAPI app, API routers, models, schemas, bootstrap, and backend services
+- `frontend/` - Angular application
+- `analytics/` - reusable analytics services imported by the backend
+- `app.db` - main SQLite database
+- `requirements.txt` - backend dependencies
+- `BackendUpdates.md` - backend change log and API notes
 
 ## Dependencies
 
@@ -34,6 +39,8 @@
 - `uvicorn>=0.30,<1.0`
 - `sqlalchemy>=2.0,<3.0`
 - `PyJWT>=2.8,<3.0`
+
+No additional dependencies are required for the analytics integration.
 
 ### Frontend
 
@@ -73,13 +80,22 @@ Frontend URL:
 
 ## Run Analytics Module Separately
 
-The analytics helpers are plain Python modules and can be imported independently inside backend services or scripts.
+The analytics helpers are plain Python modules and can be imported independently inside backend services or scripts. The current backend already imports them for progress, test analytics, and aggregated topic results.
 
-Example:
+Examples:
 
 ```powershell
 python -c "from analytics.progress_service import ProgressService; print(ProgressService)"
+python -c "from analytics.test_analytics_service import TestAnalyticsService; print(TestAnalyticsService)"
+python -c "from analytics.topic_result_service import TopicResultService; print(TopicResultService)"
 ```
+
+## Analytics API Notes
+
+- `GET /api/tests/{test_id}/analytics/my/` returns test attempt analytics for the current user
+- `GET /api/topic-results/my/` returns aggregated topic results across accessible modules
+- `GET /api/courses/{course_id}/topic-results/my/` returns aggregated topic results for one course
+- `GET /api/modules/{module_id}/topic-results/my/` returns aggregated topic results for one module
 
 ## Database Notes
 

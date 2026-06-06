@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 
-from analytics.progress_service import ProgressService
+from analytics import ProgressService, TestAnalyticsService, TopicResultService
 from backend.models import (
     Lesson,
     LessonProgress,
@@ -18,6 +18,7 @@ from backend.schemas import (
     AnalyticsDynamicsPointRead,
     PersonalRecommendationRead,
     ProgressRead,
+    TestAnalyticsRead,
     TopicResultAggregateRead,
     TopicResultRead,
     UserAnalyticsSummaryRead,
@@ -26,14 +27,6 @@ from backend.schemas import (
 
 def average(values: list[float]) -> float:
     return round(sum(values) / len(values), 2) if values else 0.0
-
-
-def weakness_from_percentage(average_percentage: float, attempts_count: int) -> str:
-    if attempts_count == 0 or average_percentage < 50:
-        return "high"
-    if average_percentage < 75:
-        return "medium"
-    return "low"
 
 
 def get_modules_for_scope(
@@ -64,42 +57,21 @@ def compute_topic_result_row(
     user_id: int,
     module: Module,
 ) -> TopicResultRead:
-    existing = db.scalar(
-        select(TopicResult).where(TopicResult.user_id == user_id, TopicResult.module_id == module.id)
-    )
-    test_ids = ProgressService(db).get_scope_test_ids(user_id, module_id=module.id)
-    attempts = (
-        list(
-            db.scalars(
-                select(TestAttempt).where(
-                    TestAttempt.user_id == user_id,
-                    TestAttempt.finished_at.is_not(None),
-                    TestAttempt.test_id.in_(test_ids),
-                )
-            )
+    payload = TopicResultService(db).get_module_topic_results(user_id, module.id)
+    if not payload:
+        return TopicResultRead(
+            id=None,
+            module_id=module.id,
+            module_title=module.title,
+            attempts_count=0,
+            average_percentage=0.0,
+            best_percentage=0.0,
+            weakness_level="not_enough_data",
+            last_attempt_at=None,
+            created_at=module.created_at,
+            updated_at=module.updated_at,
         )
-        if test_ids
-        else []
-    )
-    percentages = [attempt.percentage for attempt in attempts]
-    attempts_count = len(attempts)
-    average_percentage = average(percentages)
-    best_percentage = round(max(percentages), 2) if percentages else 0.0
-    weakness_level = weakness_from_percentage(average_percentage, attempts_count)
-    last_attempt_at = max((attempt.finished_at or attempt.started_at for attempt in attempts), default=None)
-
-    return TopicResultRead(
-        id=existing.id if existing else None,
-        module_id=module.id,
-        module_title=module.title,
-        attempts_count=attempts_count,
-        average_percentage=average_percentage,
-        best_percentage=best_percentage,
-        weakness_level=weakness_level,
-        last_attempt_at=last_attempt_at,
-        created_at=existing.created_at if existing else module.created_at,
-        updated_at=existing.updated_at if existing else module.updated_at,
-    )
+    return TopicResultRead(**payload[0])
 
 
 def compute_topic_results(
@@ -108,8 +80,14 @@ def compute_topic_results(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[TopicResultRead]:
-    modules = get_modules_for_scope(db, user_id, course_id=course_id, module_id=module_id)
-    return [compute_topic_result_row(db, user_id, module) for module in modules]
+    service = TopicResultService(db)
+    if module_id is not None:
+        payload = service.get_module_topic_results(user_id, module_id)
+    elif course_id is not None:
+        payload = service.get_course_topic_results(user_id, course_id)
+    else:
+        payload = service.get_user_topic_results(user_id)
+    return [TopicResultRead(**item) for item in payload]
 
 
 def upsert_topic_result(
@@ -121,21 +99,18 @@ def upsert_topic_result(
     if module is None:
         return None
 
-    computed = compute_topic_result_row(db, user_id, module)
-    topic_result = db.scalar(
-        select(TopicResult).where(TopicResult.user_id == user_id, TopicResult.module_id == module_id)
+    TopicResultService(db).update_topic_result_after_attempt(user_id, module_id)
+    return db.scalar(
+        select(TopicResult).where(
+            TopicResult.user_id == user_id,
+            TopicResult.module_id == module_id,
+        )
     )
-    if topic_result is None:
-        topic_result = TopicResult(user_id=user_id, module_id=module_id)
-        db.add(topic_result)
 
-    topic_result.attempts_count = computed.attempts_count
-    topic_result.average_percentage = computed.average_percentage
-    topic_result.best_percentage = computed.best_percentage
-    topic_result.weakness_level = computed.weakness_level
-    topic_result.last_attempt_at = computed.last_attempt_at
-    db.flush()
-    return topic_result
+
+def build_test_analytics(db: Session, user_id: int, test_id: int) -> TestAnalyticsRead:
+    payload = TestAnalyticsService(db).build_test_analytics(user_id, test_id)
+    return TestAnalyticsRead(**payload)
 
 
 def build_summary(db: Session, user_id: int) -> UserAnalyticsSummaryRead:
@@ -220,7 +195,7 @@ def build_personal_recommendations(
     for recommendation in recommendations:
         topic_result = topic_results.get(recommendation.module_id)
         current_percentage = topic_result.average_percentage if topic_result else 0.0
-        weakness_level = topic_result.weakness_level if topic_result else "high"
+        weakness_level = topic_result.weakness_level if topic_result else "not_enough_data"
         attempts_count = topic_result.attempts_count if topic_result else 0
         if attempts_count == 0 or current_percentage <= recommendation.trigger_score_threshold:
             module = module_map[recommendation.module_id]
