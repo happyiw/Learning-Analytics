@@ -7,16 +7,20 @@ from backend.deps import get_current_user, get_db, require_teacher_or_admin
 from backend.models import Course, Module, User
 from backend.schemas import (
     AnalyticsDynamicsPointRead,
+    PersonalAnalyticsSnapshotRead,
     ProgressRead,
     TopicResultAggregateRead,
     TopicResultRead,
     UserAnalyticsSummaryRead,
 )
 from backend.services.analytics import (
+    build_best_topics,
     build_dynamics,
+    build_personal_analytics_snapshot,
     build_progress,
     build_summary,
     build_topic_result_aggregates,
+    build_weak_topics,
     compute_topic_results,
 )
 
@@ -39,6 +43,14 @@ def get_my_topic_results(
     return compute_topic_results(db, current_user.id)
 
 
+@router.get("/analytics/my/snapshot/", response_model=PersonalAnalyticsSnapshotRead)
+def get_my_analytics_snapshot(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PersonalAnalyticsSnapshotRead:
+    return build_personal_analytics_snapshot(db, current_user.id)
+
+
 @router.get("/analytics/my/summary/", response_model=UserAnalyticsSummaryRead)
 def get_my_summary(
     db: Session = Depends(get_db),
@@ -52,8 +64,7 @@ def get_my_weak_topics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[TopicResultRead]:
-    results = [result for result in compute_topic_results(db, current_user.id) if result.attempts_count > 0]
-    return sorted(results, key=lambda item: (item.average_percentage, item.best_percentage, item.module_title))
+    return build_weak_topics(db, current_user.id)
 
 
 @router.get("/analytics/my/best-topics/", response_model=list[TopicResultRead])
@@ -61,11 +72,7 @@ def get_my_best_topics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[TopicResultRead]:
-    results = [result for result in compute_topic_results(db, current_user.id) if result.attempts_count > 0]
-    return sorted(
-        results,
-        key=lambda item: (-item.best_percentage, -item.average_percentage, item.module_title),
-    )
+    return build_best_topics(db, current_user.id)
 
 
 @router.get("/analytics/my/dynamics/", response_model=list[AnalyticsDynamicsPointRead])

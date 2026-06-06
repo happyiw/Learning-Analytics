@@ -50,7 +50,7 @@
 
 ### Модуль аналитики
 
-Папка `analytics/` больше не является полностью внешним или изолированным модулем. В актуальной реализации backend напрямую использует:
+В актуальной реализации backend напрямую использует:
 
 - [analytics/progress_service.py](analytics/progress_service.py) — расчет прогресса по курсу, модулю и в целом;
 - [analytics/test_analytics_service.py](analytics/test_analytics_service.py) — аналитика тестовых попыток;

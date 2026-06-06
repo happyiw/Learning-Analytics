@@ -29,6 +29,9 @@ export interface PersonalRecommendation {
   trigger_score_threshold: number;
   current_percentage: number;
   weakness_level: string;
+  priority?: string | null;
+  reason?: string | null;
+  topic_reason?: string | null;
 }
 
 export interface CourseCard {
@@ -60,6 +63,8 @@ export interface TopicResult {
   weakness_level: string;
   last_attempt_at: string | null;
   updated_at: string | null;
+  reason?: string | null;
+  category?: string | null;
 }
 
 export interface AnalyticsDynamicsPoint {

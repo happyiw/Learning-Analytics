@@ -442,6 +442,8 @@ class TopicResultRead(TimestampedRead):
     best_percentage: float
     weakness_level: str
     last_attempt_at: datetime | None = None
+    reason: str | None = None
+    category: str | None = None
 
 
 class TopicResultAggregateRead(BaseModel):
@@ -491,6 +493,9 @@ class PersonalRecommendationRead(BaseModel):
     trigger_score_threshold: float
     current_percentage: float
     weakness_level: str
+    priority: str | None = None
+    reason: str | None = None
+    topic_reason: str | None = None
 
 
 class UserAnalyticsSummaryRead(BaseModel):
@@ -512,6 +517,15 @@ class AnalyticsDynamicsPointRead(BaseModel):
     module_title: str | None = None
     percentage: float
     is_passed: bool
+
+
+class PersonalAnalyticsSnapshotRead(BaseModel):
+    progress: ProgressRead
+    summary: UserAnalyticsSummaryRead
+    topicResults: list[TopicResultRead] = Field(default_factory=list)
+    weakTopics: list[TopicResultRead] = Field(default_factory=list)
+    bestTopics: list[TopicResultRead] = Field(default_factory=list)
+    dynamics: list[AnalyticsDynamicsPointRead] = Field(default_factory=list)
 
 
 class MessageRead(BaseModel):

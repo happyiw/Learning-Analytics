@@ -3,12 +3,18 @@ from __future__ import annotations
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 
-from analytics import ProgressService, TestAnalyticsService, TopicResultService
+from analytics import (
+    ProgressService,
+    RecommendationService,
+    StudentSummaryService,
+    TestAnalyticsService,
+    TopicResultService,
+    WeakTopicDetector,
+)
 from backend.models import (
     Lesson,
     LessonProgress,
     Module,
-    Recommendation,
     Test,
     TestAttempt,
     TopicResult,
@@ -16,6 +22,7 @@ from backend.models import (
 )
 from backend.schemas import (
     AnalyticsDynamicsPointRead,
+    PersonalAnalyticsSnapshotRead,
     PersonalRecommendationRead,
     ProgressRead,
     TestAnalyticsRead,
@@ -114,64 +121,53 @@ def build_test_analytics(db: Session, user_id: int, test_id: int) -> TestAnalyti
 
 
 def build_summary(db: Session, user_id: int) -> UserAnalyticsSummaryRead:
-    attempts = list(db.scalars(select(TestAttempt).where(TestAttempt.user_id == user_id)))
-    completed_attempts = [attempt for attempt in attempts if attempt.finished_at is not None]
-    passed_attempts = [attempt for attempt in attempts if attempt.is_passed]
-    lessons_completed = len(
-        list(
-            db.scalars(
-                select(LessonProgress.id).where(
-                    LessonProgress.user_id == user_id,
-                    LessonProgress.is_completed.is_(True),
-                )
-            )
-        )
-    )
-    unique_courses_started = len(
-        list(
-            db.scalars(
-                select(distinct(Test.course_id))
-                .join(TestAttempt, TestAttempt.test_id == Test.id)
-                .where(TestAttempt.user_id == user_id)
-            )
-        )
-    )
-    return UserAnalyticsSummaryRead(
-        total_attempts=len(attempts),
-        completed_attempts=len(completed_attempts),
-        passed_attempts=len(passed_attempts),
-        average_score=average([attempt.score for attempt in completed_attempts]),
-        average_percentage=average([attempt.percentage for attempt in completed_attempts]),
-        lessons_completed=lessons_completed,
-        unique_courses_started=unique_courses_started,
-    )
+    payload = StudentSummaryService(db).get_summary(user_id)
+    return UserAnalyticsSummaryRead(**payload)
 
 
 def build_dynamics(db: Session, user_id: int) -> list[AnalyticsDynamicsPointRead]:
-    attempts = list(
-        db.scalars(
-            select(TestAttempt)
-            .join(Test, Test.id == TestAttempt.test_id)
-            .where(TestAttempt.user_id == user_id, TestAttempt.finished_at.is_not(None))
-            .order_by(TestAttempt.finished_at, TestAttempt.id)
-        )
+    payload = StudentSummaryService(db).get_dynamics(user_id)
+    return [AnalyticsDynamicsPointRead(**item) for item in payload]
+
+
+def build_personal_analytics_snapshot(db: Session, user_id: int) -> PersonalAnalyticsSnapshotRead:
+    payload = StudentSummaryService(db).build_analytics_snapshot(user_id)
+    return PersonalAnalyticsSnapshotRead(
+        progress=payload["progress"],
+        summary=UserAnalyticsSummaryRead(**payload["summary"]),
+        topicResults=[TopicResultRead(**item) for item in payload["topicResults"]],
+        weakTopics=[TopicResultRead(**item) for item in payload["weakTopics"]],
+        bestTopics=[TopicResultRead(**item) for item in payload["bestTopics"]],
+        dynamics=[AnalyticsDynamicsPointRead(**item) for item in payload["dynamics"]],
     )
-    points: list[AnalyticsDynamicsPointRead] = []
-    for attempt in attempts:
-        module = attempt.test.module
-        points.append(
-            AnalyticsDynamicsPointRead(
-                attempt_id=attempt.id,
-                date=attempt.finished_at or attempt.started_at,
-                test_id=attempt.test_id,
-                test_title=attempt.test.title,
-                module_id=module.id if module else None,
-                module_title=module.title if module else None,
-                percentage=attempt.percentage,
-                is_passed=attempt.is_passed,
-            )
-        )
-    return points
+
+
+def build_weak_topics(
+    db: Session,
+    user_id: int,
+    course_id: int | None = None,
+    module_id: int | None = None,
+) -> list[TopicResultRead]:
+    payload = WeakTopicDetector(db).get_weak_topics(
+        user_id,
+        course_id=course_id,
+        module_id=module_id,
+    )
+    return [TopicResultRead(**item) for item in payload]
+
+
+def build_best_topics(
+    db: Session,
+    user_id: int,
+    course_id: int | None = None,
+    module_id: int | None = None,
+) -> list[TopicResultRead]:
+    payload = WeakTopicDetector(db).get_strong_topics(
+        user_id,
+        course_id=course_id,
+        module_id=module_id,
+    )
+    return [TopicResultRead(**item) for item in payload]
 
 
 def build_personal_recommendations(
@@ -180,39 +176,14 @@ def build_personal_recommendations(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[PersonalRecommendationRead]:
-    modules = get_modules_for_scope(db, user_id, course_id=course_id, module_id=module_id)
-    module_map = {module.id: module for module in modules}
-    topic_results = {result.module_id: result for result in compute_topic_results(db, user_id, course_id=course_id, module_id=module_id)}
-    recommendations = list(
-        db.scalars(
-            select(Recommendation)
-            .where(Recommendation.module_id.in_(list(module_map.keys())))
-            .order_by(Recommendation.id)
-        )
-    ) if module_map else []
-
-    items: list[PersonalRecommendationRead] = []
-    for recommendation in recommendations:
-        topic_result = topic_results.get(recommendation.module_id)
-        current_percentage = topic_result.average_percentage if topic_result else 0.0
-        weakness_level = topic_result.weakness_level if topic_result else "not_enough_data"
-        attempts_count = topic_result.attempts_count if topic_result else 0
-        if attempts_count == 0 or current_percentage <= recommendation.trigger_score_threshold:
-            module = module_map[recommendation.module_id]
-            items.append(
-                PersonalRecommendationRead(
-                    id=recommendation.id,
-                    module_id=module.id,
-                    module_title=module.title,
-                    title=recommendation.title,
-                    description=recommendation.description,
-                    resource_url=recommendation.resource_url,
-                    trigger_score_threshold=recommendation.trigger_score_threshold,
-                    current_percentage=current_percentage,
-                    weakness_level=weakness_level,
-                )
-            )
-    return items
+    service = RecommendationService(db)
+    if module_id is not None:
+        payload = service.get_module_recommendations(user_id, module_id)
+    elif course_id is not None:
+        payload = service.get_course_recommendations(user_id, course_id)
+    else:
+        payload = service.get_personal_recommendations(user_id)
+    return [PersonalRecommendationRead(**item) for item in payload]
 
 
 def build_topic_result_aggregates(

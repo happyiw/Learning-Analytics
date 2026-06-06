@@ -148,3 +148,195 @@ class TopicResultService:
             "created_at": topic_result.created_at,
             "updated_at": topic_result.updated_at,
         }
+
+
+class WeakTopicDetector:
+    def __init__(self, db: Session):
+        self.db = db
+        self.topic_result_service = TopicResultService(db)
+
+    def get_weak_topics(
+        self,
+        user_id: int,
+        course_id: int | None = None,
+        module_id: int | None = None,
+    ) -> list[dict]:
+        topics = self._get_topics(user_id, course_id=course_id, module_id=module_id)
+        weak_topics = [
+            self._attach_weak_reason(topic)
+            for topic in topics
+            if self._is_weak_topic(topic)
+        ]
+        return self.sort_topics_by_problem_severity(weak_topics)
+
+    def get_strong_topics(
+        self,
+        user_id: int,
+        course_id: int | None = None,
+        module_id: int | None = None,
+    ) -> list[dict]:
+        topics = self._get_topics(user_id, course_id=course_id, module_id=module_id)
+        strong_topics = [
+            self._attach_strong_reason(topic)
+            for topic in topics
+            if self._is_strong_topic(topic)
+        ]
+        return self.sort_topics_by_success(strong_topics)
+
+    def sort_topics_by_problem_severity(self, topics: list[dict]) -> list[dict]:
+        severity_order = {
+            "not_enough_data": 0,
+            "high": 1,
+            "medium": 2,
+            "low": 3,
+            "none": 4,
+        }
+        return sorted(
+            topics,
+            key=lambda item: (
+                severity_order.get(item["weakness_level"], 99),
+                item["average_percentage"],
+                item["best_percentage"],
+                item["module_title"],
+            ),
+        )
+
+    def sort_topics_by_success(self, topics: list[dict]) -> list[dict]:
+        return sorted(
+            topics,
+            key=lambda item: (
+                -item["best_percentage"],
+                -item["average_percentage"],
+                -item["attempts_count"],
+                item["module_title"],
+            ),
+        )
+
+    def determine_weak_topic_reason(self, topic_result: dict) -> str:
+        attempts_count = topic_result["attempts_count"]
+        average_percentage = topic_result["average_percentage"]
+        best_percentage = topic_result["best_percentage"]
+        weakness_level = topic_result["weakness_level"]
+
+        if attempts_count == 0:
+            return "Недостаточно данных: пользователь еще не завершал тесты по этой теме."
+        if weakness_level == "high":
+            return (
+                f"Средний результат по теме составляет {average_percentage:.2f}%, "
+                "что указывает на выраженные трудности в освоении материала."
+            )
+        if weakness_level == "medium":
+            return (
+                f"Средний результат по теме составляет {average_percentage:.2f}%, "
+                "поэтому тема требует дополнительного повторения и закрепления."
+            )
+        if weakness_level == "low":
+            return (
+                f"Тема в целом усвоена, но средний результат {average_percentage:.2f}% "
+                f"и лучший результат {best_percentage:.2f}% оставляют пространство для улучшения."
+            )
+        return "Тема не относится к числу слабых, но была проанализирована для полноты аналитики."
+
+    def determine_strong_topic_reason(self, topic_result: dict) -> str:
+        attempts_count = topic_result["attempts_count"]
+        average_percentage = topic_result["average_percentage"]
+        best_percentage = topic_result["best_percentage"]
+
+        if attempts_count == 0:
+            return "Тема пока не оценена: завершенных попыток нет."
+        if average_percentage >= 90:
+            return (
+                f"Средний результат {average_percentage:.2f}% показывает устойчиво высокое освоение темы."
+            )
+        if best_percentage >= 90:
+            return (
+                f"Лучший результат {best_percentage:.2f}% показывает, что тема может быть отнесена к сильным сторонам пользователя."
+            )
+        return (
+            f"Средний результат {average_percentage:.2f}% и лучший результат {best_percentage:.2f}% "
+            "позволяют считать тему одной из наиболее успешно освоенных."
+        )
+
+    def prepare_analytics_data(
+        self,
+        user_id: int,
+        course_id: int | None = None,
+        module_id: int | None = None,
+    ) -> dict:
+        topics = [
+            self._attach_analytics_reason(topic)
+            for topic in self._get_topics(user_id, course_id=course_id, module_id=module_id)
+        ]
+        return {
+            "topic_results": topics,
+            "weak_topics": self.get_weak_topics(user_id, course_id=course_id, module_id=module_id),
+            "best_topics": self.get_strong_topics(user_id, course_id=course_id, module_id=module_id),
+        }
+
+    def prepare_recommendation_data(
+        self,
+        user_id: int,
+        course_id: int | None = None,
+        module_id: int | None = None,
+    ) -> list[dict]:
+        topics = self._get_topics(user_id, course_id=course_id, module_id=module_id)
+        prepared: list[dict] = []
+        for topic in topics:
+            item = dict(topic)
+            item["is_weak_topic"] = self._is_weak_topic(item, include_not_enough_data=True)
+            item["is_strong_topic"] = self._is_strong_topic(item)
+            item["reason"] = (
+                self.determine_weak_topic_reason(item)
+                if item["is_weak_topic"]
+                else self.determine_strong_topic_reason(item)
+            )
+            prepared.append(item)
+        return prepared
+
+    def _get_topics(
+        self,
+        user_id: int,
+        course_id: int | None = None,
+        module_id: int | None = None,
+    ) -> list[dict]:
+        if module_id is not None:
+            return self.topic_result_service.get_module_topic_results(user_id, module_id)
+        if course_id is not None:
+            return self.topic_result_service.get_course_topic_results(user_id, course_id)
+        return self.topic_result_service.get_user_topic_results(user_id)
+
+    def _is_weak_topic(self, topic_result: dict, include_not_enough_data: bool = False) -> bool:
+        if topic_result["attempts_count"] == 0:
+            return include_not_enough_data
+        return topic_result["weakness_level"] in {"high", "medium", "low"}
+
+    def _is_strong_topic(self, topic_result: dict) -> bool:
+        return topic_result["attempts_count"] > 0 and (
+            topic_result["weakness_level"] == "none"
+            or topic_result["average_percentage"] >= 85
+            or topic_result["best_percentage"] >= 90
+        )
+
+    def _attach_weak_reason(self, topic_result: dict) -> dict:
+        item = dict(topic_result)
+        item["reason"] = self.determine_weak_topic_reason(item)
+        item["category"] = "weak"
+        return item
+
+    def _attach_strong_reason(self, topic_result: dict) -> dict:
+        item = dict(topic_result)
+        item["reason"] = self.determine_strong_topic_reason(item)
+        item["category"] = "strong"
+        return item
+
+    def _attach_analytics_reason(self, topic_result: dict) -> dict:
+        if self._is_weak_topic(topic_result, include_not_enough_data=True):
+            return self._attach_weak_reason(topic_result)
+        if self._is_strong_topic(topic_result):
+            return self._attach_strong_reason(topic_result)
+        item = dict(topic_result)
+        item["reason"] = (
+            f"Тема находится в промежуточной зоне: средний результат {item['average_percentage']:.2f}%."
+        )
+        item["category"] = "neutral"
+        return item
