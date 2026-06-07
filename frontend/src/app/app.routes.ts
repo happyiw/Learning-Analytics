@@ -14,6 +14,7 @@ import { ProfilePageComponent } from './features/profile/profile-page.component'
 import { RecommendationsPageComponent } from './features/recommendations/recommendations-page.component';
 import { TaskPageComponent } from './features/task/task-page.component';
 import { TestAttemptPageComponent } from './features/test-attempt/test-attempt-page.component';
+import { TestAttemptResultPageComponent } from './features/test-attempt-result/test-attempt-result-page.component';
 import { TestPageComponent } from './features/test/test-page.component';
 
 export const routes: Routes = [
@@ -62,6 +63,11 @@ export const routes: Routes = [
   {
     path: 'tests/:testId',
     component: TestPageComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'tests/:testId/attempt/:attemptId/result',
+    component: TestAttemptResultPageComponent,
     canActivate: [authGuard]
   },
   {

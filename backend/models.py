@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db import Base
-from backend.enums import UserRole
+from backend.enums import QuestionType, UserRole
 
 
 def utcnow() -> datetime:
@@ -191,7 +191,16 @@ class Question(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), index=True)
     text: Mapped[str] = mapped_column(Text)
-    question_type: Mapped[str] = mapped_column(String(50), default="single_choice")
+    question_type: Mapped[QuestionType] = mapped_column(
+        Enum(
+            QuestionType,
+            native_enum=False,
+            validate_strings=True,
+            create_constraint=True,
+            values_callable=lambda enum_cls: [question_type.value for question_type in enum_cls],
+        ),
+        default=QuestionType.SINGLE_CHOICE,
+    )
     difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
     score: Mapped[float] = mapped_column(Float, default=1)
     order: Mapped[int] = mapped_column(Integer, default=0)
@@ -214,6 +223,10 @@ class AnswerOption(TimestampMixin, Base):
 
     question: Mapped[Question] = relationship(back_populates="answer_options")
     user_answers: Mapped[list["UserAnswer"]] = relationship(back_populates="selected_option")
+    user_answer_links: Mapped[list["UserAnswerOptionSelection"]] = relationship(
+        back_populates="answer_option",
+        cascade="all, delete-orphan",
+    )
 
 
 class TestAttempt(Base):
@@ -276,6 +289,28 @@ class UserAnswer(Base):
     attempt: Mapped[TestAttempt] = relationship(back_populates="answers")
     question: Mapped[Question] = relationship(back_populates="user_answers")
     selected_option: Mapped[AnswerOption | None] = relationship(back_populates="user_answers")
+    selected_option_links: Mapped[list["UserAnswerOptionSelection"]] = relationship(
+        back_populates="user_answer",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def selected_option_ids(self) -> list[int]:
+        option_ids = [link.answer_option_id for link in self.selected_option_links]
+        if self.selected_option_id is not None and self.selected_option_id not in option_ids:
+            option_ids.append(self.selected_option_id)
+        return sorted(set(option_ids))
+
+
+class UserAnswerOptionSelection(Base):
+    __tablename__ = "user_answer_option_selections"
+    __table_args__ = (UniqueConstraint("user_answer_id", "answer_option_id"),)
+
+    user_answer_id: Mapped[int] = mapped_column(ForeignKey("user_answers.id"), primary_key=True)
+    answer_option_id: Mapped[int] = mapped_column(ForeignKey("answer_options.id"), primary_key=True)
+
+    user_answer: Mapped[UserAnswer] = relationship(back_populates="selected_option_links")
+    answer_option: Mapped[AnswerOption] = relationship(back_populates="user_answer_links")
 
 
 class LessonProgress(Base):

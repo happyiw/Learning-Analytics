@@ -1,0 +1,81 @@
+<section class="attempt-result-page">
+  <div class="attempt-result-page__topbar">
+    <button class="attempt-result-page__link" type="button" (click)="goToModule()">
+      Вернуться к модулю
+    </button>
+    <button class="attempt-result-page__link attempt-result-page__link--accent" type="button" (click)="openRecommendations()">
+      Перейти к рекомендациям
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="attempt-result-state attempt-result-state--error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="attempt-result-state">Загрузка результата попытки...</div>
+  } @else if (test(); as currentTest) {
+    <article class="attempt-result-card">
+      <div class="attempt-result-card__header">
+        <div>
+          <span class="attempt-result-card__badge">Результат тестовой попытки</span>
+          <h1>{{ currentTest.title }}</h1>
+        </div>
+        @if (attempt(); as currentAttempt) {
+          <span class="attempt-result-card__status" [class.attempt-result-card__status--passed]="isPassed()">
+            {{ currentAttempt.is_passed ? 'Пройден' : 'Не пройден' }}
+          </span>
+        }
+      </div>
+
+      @if (attempt(); as currentAttempt) {
+        <div class="attempt-result-card__summary">
+          <div>
+            <span>Процент выполнения</span>
+            <strong>{{ currentAttempt.percentage | number: '1.0-2' }}%</strong>
+          </div>
+          <div>
+            <span>Набранный балл</span>
+            <strong>{{ currentAttempt.score | number: '1.0-2' }}</strong>
+          </div>
+          <div>
+            <span>Максимальный балл</span>
+            <strong>{{ currentAttempt.max_score | number: '1.0-2' }}</strong>
+          </div>
+          <div>
+            <span>Время прохождения</span>
+            <strong>{{ durationLabel() }}</strong>
+          </div>
+          <div>
+            <span>Дата завершения</span>
+            <strong>{{ finishedAtLabel() }}</strong>
+          </div>
+        </div>
+      }
+
+      <div class="attempt-result-card__questions">
+        @for (item of questionResults(); track trackByQuestionId($index, item)) {
+          <article class="question-result-card">
+            <div class="question-result-card__top">
+              <h2>{{ item.question_text }}</h2>
+              <span class="question-result-card__status" [class.question-result-card__status--correct]="item.is_correct">
+                {{ item.is_correct ? 'Верно' : 'Неверно' }}
+              </span>
+            </div>
+
+            <div class="question-result-card__body">
+              <div>
+                <span>Ответ пользователя</span>
+                <strong>{{ item.user_answer }}</strong>
+              </div>
+              <div>
+                <span>Полученный балл</span>
+                <strong>{{ item.score_received | number: '1.0-2' }} / {{ item.max_score | number: '1.0-2' }}</strong>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </article>
+  }
+</section>

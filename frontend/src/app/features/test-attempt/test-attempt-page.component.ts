@@ -11,6 +11,7 @@ import { LearningService } from '../../core/services/learning.service';
 
 interface AnswerDraft {
   selected_option_id: number | null;
+  selected_option_ids: number[];
   text_answer: string;
 }
 
@@ -27,6 +28,7 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private autosaveTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private skipDraftPersistence = false;
 
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
@@ -53,12 +55,17 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.flushAutosave();
+    if (!this.skipDraftPersistence) {
+      this.flushAutosave();
+    }
     this.clearTimer();
   }
 
   @HostListener('window:beforeunload')
   handleBeforeUnload(): void {
+    if (this.skipDraftPersistence) {
+      return;
+    }
     this.persistCurrentDraftWithKeepalive();
   }
 
@@ -81,9 +88,38 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
       ...drafts,
       [questionId]: {
         selected_option_id: optionId,
+        selected_option_ids: [optionId],
         text_answer: drafts[questionId]?.text_answer || ''
       }
     }));
+    this.scheduleAutosave(questionId);
+  }
+
+  updateMultipleChoiceOption(questionId: number, optionId: number, isChecked: boolean): void {
+    this.answers.update((drafts) => {
+      const currentDraft = drafts[questionId] || {
+        selected_option_id: null,
+        selected_option_ids: [],
+        text_answer: ''
+      };
+      const currentOptionIds = currentDraft.selected_option_ids.length
+        ? currentDraft.selected_option_ids
+        : currentDraft.selected_option_id !== null
+          ? [currentDraft.selected_option_id]
+          : [];
+      const nextOptionIds = isChecked
+        ? [...new Set([...currentOptionIds, optionId])]
+        : currentOptionIds.filter((value) => value !== optionId);
+
+      return {
+        ...drafts,
+        [questionId]: {
+          selected_option_id: null,
+          selected_option_ids: nextOptionIds,
+          text_answer: currentDraft.text_answer
+        }
+      };
+    });
     this.scheduleAutosave(questionId);
   }
 
@@ -91,7 +127,8 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
     this.answers.update((drafts) => ({
       ...drafts,
       [questionId]: {
-        selected_option_id: drafts[questionId]?.selected_option_id ?? null,
+        selected_option_id: null,
+        selected_option_ids: [],
         text_answer: value
       }
     }));
@@ -99,7 +136,15 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   }
 
   getDraft(questionId: number): AnswerDraft {
-    return this.answers()[questionId] || { selected_option_id: null, text_answer: '' };
+    return this.answers()[questionId] || {
+      selected_option_id: null,
+      selected_option_ids: [],
+      text_answer: ''
+    };
+  }
+
+  isMultipleOptionSelected(questionId: number, optionId: number): boolean {
+    return this.getDraft(questionId).selected_option_ids.includes(optionId);
   }
 
   saveCurrentAnswer(): void {
@@ -131,7 +176,7 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   finishTest(): void {
     const unanswered = this.questions().filter((question) => {
       const draft = this.getDraft(question.id);
-      return !draft.selected_option_id && !draft.text_answer.trim();
+      return !this.hasDraftContent(draft);
     });
 
     this.unansweredWarning.set(
@@ -141,9 +186,14 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
     this.flushAutosave();
     this.isFinishing.set(true);
     this.learningService.finishAttempt(this.attemptId()).subscribe({
-      next: () => {
+      next: (attempt) => {
+        this.skipDraftPersistence = true;
+        this.clearTimer();
         this.isFinishing.set(false);
-        void this.router.navigate(['/tests', this.testId()]);
+        void this.router.navigate(
+          ['/tests', this.testId(), 'attempt', attempt.id, 'result'],
+          { replaceUrl: true }
+        );
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage.set(error.error?.detail || 'Не удалось завершить тест.');
@@ -183,8 +233,14 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
         this.questions.set(questions);
         this.answers.set(
           result.answers.reduce<Record<number, AnswerDraft>>((accumulator, answer) => {
+            const selectedOptionIds = answer.selected_option_ids?.length
+              ? answer.selected_option_ids
+              : answer.selected_option_id !== null
+                ? [answer.selected_option_id]
+                : [];
             accumulator[answer.question_id] = {
               selected_option_id: answer.selected_option_id,
+              selected_option_ids: selectedOptionIds,
               text_answer: answer.text_answer || ''
             };
             return accumulator;
@@ -240,8 +296,7 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   }
 
   private hasDraftValue(questionId: number): boolean {
-    const draft = this.getDraft(questionId);
-    return !!draft.selected_option_id || !!draft.text_answer.trim();
+    return this.hasDraftContent(this.getDraft(questionId));
   }
 
   private persistDraft(questionId: number): Observable<unknown> {
@@ -249,6 +304,7 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
     return this.learningService.saveAnswer(this.attemptId(), {
       question_id: questionId,
       selected_option_id: draft.selected_option_id,
+      selected_option_ids: draft.selected_option_ids,
       text_answer: draft.text_answer || null
     });
   }
@@ -273,6 +329,10 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
   }
 
   private flushAutosave(): void {
+    if (this.skipDraftPersistence || this.isFinishing()) {
+      return;
+    }
+
     if (this.autosaveTimeoutId) {
       clearTimeout(this.autosaveTimeoutId);
       this.autosaveTimeoutId = null;
@@ -306,9 +366,14 @@ export class TestAttemptPageComponent implements OnInit, OnDestroy {
       body: JSON.stringify({
         question_id: question.id,
         selected_option_id: draft.selected_option_id,
+        selected_option_ids: draft.selected_option_ids,
         text_answer: draft.text_answer || null
       })
     });
+  }
+
+  private hasDraftContent(draft: AnswerDraft): boolean {
+    return !!draft.selected_option_id || draft.selected_option_ids.length > 0 || !!draft.text_answer.trim();
   }
 
   private parseBackendDate(value: string | null): number | null {

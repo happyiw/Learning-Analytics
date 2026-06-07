@@ -27,6 +27,19 @@ def initialize_database(engine: Engine) -> None:
 def run_sqlite_migrations(engine: Engine) -> None:
     now = datetime.now(timezone.utc).isoformat()
     with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS user_answer_option_selections (
+                    user_answer_id INTEGER NOT NULL,
+                    answer_option_id INTEGER NOT NULL,
+                    PRIMARY KEY (user_answer_id, answer_option_id),
+                    FOREIGN KEY(user_answer_id) REFERENCES user_answers (id),
+                    FOREIGN KEY(answer_option_id) REFERENCES answer_options (id)
+                )
+                """
+            )
+        )
         _ensure_column(connection, "courses", "difficulty", "INTEGER")
         _ensure_column(connection, "courses", "is_open", "BOOLEAN")
         _ensure_column(connection, "modules", "created_at", "DATETIME")
@@ -60,14 +73,32 @@ def run_sqlite_migrations(engine: Engine) -> None:
                 UPDATE courses
                 SET difficulty = CASE
                     WHEN difficulty BETWEEN 1 AND 10 THEN difficulty
-                    WHEN TRIM(COALESCE(difficulty_level, '')) = '' THEN 1
-                    WHEN LOWER(TRIM(COALESCE(difficulty_level, ''))) IN ('начальный', 'легкий', 'лёгкий', 'basic', 'beginner', 'easy') THEN 2
-                    WHEN LOWER(TRIM(COALESCE(difficulty_level, ''))) IN ('средний', 'intermediate', 'medium') THEN 5
-                    WHEN LOWER(TRIM(COALESCE(difficulty_level, ''))) IN ('продвинутый', 'advanced', 'hard') THEN 8
-                    WHEN CAST(TRIM(COALESCE(difficulty_level, '')) AS INTEGER) BETWEEN 1 AND 10 THEN CAST(TRIM(COALESCE(difficulty_level, '')) AS INTEGER)
                     ELSE 1
                 END
                 WHERE difficulty IS NULL OR difficulty < 1 OR difficulty > 10
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE questions
+                SET question_type = CASE
+                    WHEN LOWER(TRIM(COALESCE(question_type, ''))) IN ('single_choice', 'choice') THEN 'single_choice'
+                    WHEN LOWER(TRIM(COALESCE(question_type, ''))) = 'multiple_choice' THEN 'multiple_choice'
+                    WHEN LOWER(TRIM(COALESCE(question_type, ''))) = 'text' THEN 'text'
+                    ELSE 'single_choice'
+                END
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT OR IGNORE INTO user_answer_option_selections (user_answer_id, answer_option_id)
+                SELECT id, selected_option_id
+                FROM user_answers
+                WHERE selected_option_id IS NOT NULL
                 """
             )
         )

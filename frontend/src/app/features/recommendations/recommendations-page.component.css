@@ -99,7 +99,7 @@
   font-weight: 700;
 }
 
-.recommendations-filter__field input {
+.recommendations-filter__field select {
   min-height: 3rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgba(120, 113, 108, 0.16);
@@ -111,6 +111,11 @@
 .recommendations-filter__submit {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: var(--surface-strong);
+}
+
+.recommendations-filter__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .page-state {
@@ -187,6 +192,14 @@
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.recommendation-card__reason {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(14, 116, 144, 0.08);
+  color: #164e63;
+  line-height: 1.65;
 }
 
 .recommendation-card__button {

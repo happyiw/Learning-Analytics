@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend.enums import UserRole
+from backend.enums import QuestionType, UserRole
 
 
 class ORMModel(BaseModel):
@@ -314,7 +314,7 @@ class AnswerOptionPublicRead(ORMModel):
 class QuestionCreate(BaseModel):
     test_id: int
     text: str
-    question_type: str = "single_choice"
+    question_type: QuestionType = QuestionType.SINGLE_CHOICE
     difficulty_level: str | None = None
     score: float = 1
     order: int = 0
@@ -323,7 +323,7 @@ class QuestionCreate(BaseModel):
 class QuestionUpdate(BaseModel):
     test_id: int | None = None
     text: str | None = None
-    question_type: str | None = None
+    question_type: QuestionType | None = None
     difficulty_level: str | None = None
     score: float | None = None
     order: int | None = None
@@ -333,7 +333,7 @@ class QuestionRead(TimestampedRead):
     id: int
     test_id: int
     text: str
-    question_type: str
+    question_type: QuestionType
     difficulty_level: str | None = None
     score: float
     order: int
@@ -344,7 +344,7 @@ class PublicQuestionRead(ORMModel):
     id: int
     test_id: int
     text: str
-    question_type: str
+    question_type: QuestionType
     difficulty_level: str | None = None
     score: float
     order: int
@@ -388,6 +388,7 @@ class TestAnalyticsRead(BaseModel):
 class UserAnswerCreate(BaseModel):
     question_id: int
     selected_option_id: int | None = None
+    selected_option_ids: list[int] = Field(default_factory=list)
     text_answer: str | None = None
 
 
@@ -396,6 +397,7 @@ class UserAnswerRead(ORMModel):
     attempt_id: int
     question_id: int
     selected_option_id: int | None = None
+    selected_option_ids: list[int] = Field(default_factory=list)
     text_answer: str | None = None
     is_correct: bool
     score_received: float

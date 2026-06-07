@@ -5,6 +5,8 @@ import {
   TopicResult
 } from './dashboard.models';
 
+export type QuestionType = 'single_choice' | 'multiple_choice' | 'text';
+
 export interface LessonStatItem {
   label: string;
   value: string;
@@ -102,7 +104,7 @@ export interface PublicQuestion {
   id: number;
   test_id: number;
   text: string;
-  question_type: string;
+  question_type: QuestionType;
   difficulty_level: string | null;
   score: number;
   order: number;
@@ -126,6 +128,7 @@ export interface UserAnswer {
   attempt_id: number;
   question_id: number;
   selected_option_id: number | null;
+  selected_option_ids: number[];
   text_answer: string | null;
   is_correct: boolean;
   score_received: number;
@@ -135,6 +138,16 @@ export interface UserAnswer {
 export interface AttemptResult {
   attempt: TestAttempt;
   answers: UserAnswer[];
+}
+
+export interface AttemptQuestionResultView {
+  question_id: number;
+  question_text: string;
+  question_type: QuestionType;
+  max_score: number;
+  user_answer: string;
+  is_correct: boolean;
+  score_received: number;
 }
 
 export interface UnfinishedAttempt {
@@ -155,6 +168,7 @@ export interface UnfinishedAttempt {
 export interface UserAnswerPayload {
   question_id: number;
   selected_option_id?: number | null;
+  selected_option_ids?: number[];
   text_answer?: string | null;
 }
 

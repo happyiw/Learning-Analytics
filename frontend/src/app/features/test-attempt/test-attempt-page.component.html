@@ -31,6 +31,19 @@
               (input)="updateTextAnswer(question.id, $any($event.target).value)"
               placeholder="Введите свой ответ"
             ></textarea>
+          } @else if (question.question_type === 'multiple_choice') {
+            <div class="option-list">
+              @for (option of question.answer_options; track option.id) {
+                <label class="option-item">
+                  <input
+                    type="checkbox"
+                    [checked]="isMultipleOptionSelected(question.id, option.id)"
+                    (change)="updateMultipleChoiceOption(question.id, option.id, $any($event.target).checked)"
+                  />
+                  <span>{{ option.text }}</span>
+                </label>
+              }
+            </div>
           } @else {
             <div class="option-list">
               @for (option of question.answer_options; track option.id) {

@@ -25,7 +25,7 @@ export class LessonPageComponent implements OnInit {
   readonly isCompleting = signal(false);
   readonly errorMessage = signal('');
   readonly lesson = signal<LessonDetail | null>(null);
-  readonly lessonId = computed(() => Number(this.route.snapshot.paramMap.get('lessonId')));
+  readonly lessonId = signal<number | null>(null);
   readonly hasNextLesson = computed(() => !!this.lesson()?.next_lesson_id);
   readonly actionLabel = computed(() => {
     const lesson = this.lesson();
@@ -38,7 +38,7 @@ export class LessonPageComponent implements OnInit {
     if (lesson.next_lesson_id) {
       return 'Далее';
     }
-    return lesson.is_completed ? 'Урок завершён' : 'Завершить';
+    return lesson.is_completed ? 'Урок завершен' : 'Завершить';
   });
   readonly safeVideoUrl = computed<SafeResourceUrl | null>(() => {
     const url = this.lesson()?.video_url;
@@ -48,7 +48,11 @@ export class LessonPageComponent implements OnInit {
   ngOnInit(): void {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadLesson());
+      .subscribe((params) => {
+        const lessonId = Number(params.get('lessonId'));
+        this.lessonId.set(Number.isFinite(lessonId) && lessonId > 0 ? lessonId : null);
+        this.loadLesson();
+      });
   }
 
   goBack(): void {
@@ -100,12 +104,14 @@ export class LessonPageComponent implements OnInit {
   private loadLesson(): void {
     const lessonId = this.lessonId();
     if (!lessonId) {
+      this.lesson.set(null);
       this.errorMessage.set('Урок не найден.');
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set('');
+    this.lesson.set(null);
     this.learningService.getLesson(lessonId).subscribe({
       next: (lesson) => {
         this.lesson.set(lesson);

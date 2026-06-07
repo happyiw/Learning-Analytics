@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from backend.deps import get_current_user, get_db, require_teacher_or_admin
-from backend.enums import UserRole
+from backend.enums import QuestionType, UserRole
 from backend.models import (
     AnswerOption,
     Course,
@@ -17,6 +17,7 @@ from backend.models import (
     TestAttempt,
     User,
     UserAnswer,
+    UserAnswerOptionSelection,
 )
 from backend.schemas import (
     AnswerOptionCreate,
@@ -69,7 +70,10 @@ def get_attempt_or_404(attempt_id: int, db: Session) -> TestAttempt:
     attempt = db.scalar(
         select(TestAttempt)
         .where(TestAttempt.id == attempt_id)
-        .options(selectinload(TestAttempt.test), selectinload(TestAttempt.answers))
+        .options(
+            selectinload(TestAttempt.test),
+            selectinload(TestAttempt.answers).selectinload(UserAnswer.selected_option_links),
+        )
     )
     if attempt is None:
         raise HTTPException(
@@ -94,25 +98,85 @@ def normalize_text(value: str | None) -> str:
     return (value or "").strip().lower()
 
 
-def score_answer(
-    question: Question,
+def normalize_selected_option_ids(
     selected_option_id: int | None,
-    text_answer: str | None,
-    db: Session,
-) -> tuple[bool, float]:
-    if question.question_type in {"single_choice", "choice", "multiple_choice"}:
-        if selected_option_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="selected_option_id is required for choice questions.",
-            )
-        option = get_answer_option_or_404(selected_option_id, db)
-        if option.question_id != question.id:
+    selected_option_ids: list[int] | None,
+) -> list[int]:
+    normalized_ids: list[int] = []
+    seen: set[int] = set()
+    for option_id in [selected_option_id, *(selected_option_ids or [])]:
+        if option_id is None or option_id in seen:
+            continue
+        normalized_ids.append(option_id)
+        seen.add(option_id)
+    return normalized_ids
+
+
+def get_selected_options(question: Question, selected_option_ids: list[int]) -> list[AnswerOption]:
+    option_map = {option.id: option for option in question.answer_options}
+    selected_options: list[AnswerOption] = []
+    for option_id in selected_option_ids:
+        option = option_map.get(option_id)
+        if option is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Answer option does not belong to the question.",
             )
+        selected_options.append(option)
+    return selected_options
+
+
+def prepare_answer_input(
+    question: Question,
+    selected_option_id: int | None,
+    selected_option_ids: list[int] | None,
+    text_answer: str | None,
+) -> tuple[int | None, list[int], str | None]:
+    normalized_option_ids = normalize_selected_option_ids(selected_option_id, selected_option_ids)
+    normalized_text_answer = text_answer.strip() if text_answer and text_answer.strip() else None
+
+    if question.question_type == QuestionType.SINGLE_CHOICE:
+        if not normalized_option_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="selected_option_id is required for single_choice questions.",
+            )
+        if len(normalized_option_ids) != 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="single_choice questions accept exactly one selected option.",
+            )
+        return normalized_option_ids[0], normalized_option_ids, None
+
+    if question.question_type == QuestionType.MULTIPLE_CHOICE:
+        if not normalized_option_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="selected_option_ids is required for multiple_choice questions.",
+            )
+        return None, normalized_option_ids, None
+
+    return None, [], normalized_text_answer
+
+
+def score_answer(
+    question: Question,
+    selected_option_ids: list[int],
+    text_answer: str | None,
+) -> tuple[bool, float]:
+    if question.question_type == QuestionType.SINGLE_CHOICE:
+        option = get_selected_options(question, selected_option_ids)[0]
         return option.is_correct, question.score if option.is_correct else 0.0
+
+    if question.question_type == QuestionType.MULTIPLE_CHOICE:
+        selected_options = get_selected_options(question, selected_option_ids)
+        correct_option_ids = {option.id for option in question.answer_options if option.is_correct}
+        selected_option_id_set = {option.id for option in selected_options}
+        if not correct_option_ids:
+            is_answered = bool(selected_option_id_set)
+            return is_answered, question.score if is_answered else 0.0
+        is_correct = selected_option_id_set == correct_option_ids
+        return is_correct, question.score if is_correct else 0.0
 
     correct_texts = {
         normalize_text(option.text)
@@ -325,18 +389,13 @@ def submit_answer(
             detail="Question does not belong to the test.",
         )
 
-    is_correct, score_received = score_answer(
-        question=question,
-        selected_option_id=payload.selected_option_id,
-        text_answer=payload.text_answer,
-        db=db,
-    )
-
     user_answer = db.scalar(
-        select(UserAnswer).where(
+        select(UserAnswer)
+        .where(
             UserAnswer.attempt_id == attempt_id,
             UserAnswer.question_id == payload.question_id,
         )
+        .options(selectinload(UserAnswer.selected_option_links))
     )
     if user_answer is None:
         user_answer = UserAnswer(
@@ -345,15 +404,35 @@ def submit_answer(
         )
         db.add(user_answer)
 
-    user_answer.selected_option_id = payload.selected_option_id
-    user_answer.text_answer = payload.text_answer
+    selected_option_id, selected_option_ids, text_answer = prepare_answer_input(
+        question=question,
+        selected_option_id=payload.selected_option_id,
+        selected_option_ids=payload.selected_option_ids,
+        text_answer=payload.text_answer,
+    )
+    is_correct, score_received = score_answer(
+        question=question,
+        selected_option_ids=selected_option_ids,
+        text_answer=text_answer,
+    )
+
+    user_answer.selected_option_id = selected_option_id
+    user_answer.text_answer = text_answer
     user_answer.is_correct = is_correct
     user_answer.score_received = score_received
     user_answer.answered_at = datetime.now(timezone.utc)
+    user_answer.selected_option_links.clear()
+    for option in get_selected_options(question, selected_option_ids):
+        user_answer.selected_option_links.append(
+            UserAnswerOptionSelection(answer_option_id=option.id)
+        )
 
     db.commit()
-    db.refresh(user_answer)
-    return user_answer
+    return db.scalar(
+        select(UserAnswer)
+        .where(UserAnswer.id == user_answer.id)
+        .options(selectinload(UserAnswer.selected_option_links))
+    )
 
 
 @router.post("/api/test-attempts/{attempt_id}/finish/", response_model=TestAttemptRead)
@@ -397,7 +476,12 @@ def get_attempt_result(
     attempt = get_attempt_or_404(attempt_id, db)
     ensure_attempt_access(attempt, current_user)
     answers = list(
-        db.scalars(select(UserAnswer).where(UserAnswer.attempt_id == attempt_id).order_by(UserAnswer.id))
+        db.scalars(
+            select(UserAnswer)
+            .where(UserAnswer.attempt_id == attempt_id)
+            .options(selectinload(UserAnswer.selected_option_links))
+            .order_by(UserAnswer.id)
+        )
     )
     return AttemptResultRead(
         attempt=TestAttemptRead.model_validate(attempt),

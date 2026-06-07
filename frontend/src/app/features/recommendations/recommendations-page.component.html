@@ -2,10 +2,10 @@
   <article class="recommendations-hero">
     <div>
       <span class="recommendations-hero__badge">Рекомендации</span>
-      <h1>Персональные материалы для уверенного движения вперёд.</h1>
+      <h1>Персональные материалы для уверенного движения вперед.</h1>
       <p>
-        Это прототип страницы рекомендаций. Здесь можно смотреть общие советы и
-        при необходимости запрашивать рекомендации по курсу или модулю.
+        Здесь можно смотреть общие рекомендации, а также отбирать советы по выбранному курсу
+        или конкретному модулю внутри курса.
       </p>
     </div>
 
@@ -39,18 +39,42 @@
 
       @if (scope !== 'all') {
         <label class="recommendations-filter__field">
-          <span>{{ scope === 'course' ? 'ID курса' : 'ID модуля' }}</span>
-          <input
-            type="number"
-            min="1"
-            [(ngModel)]="scopeId"
-            [name]="scope === 'course' ? 'courseId' : 'moduleId'"
-            placeholder="Введите идентификатор"
-          />
+          <span>Курс</span>
+          <select
+            [ngModel]="selectedCourseId()"
+            name="courseId"
+            (ngModelChange)="onCourseChange($event)"
+          >
+            <option [ngValue]="null">Выберите курс</option>
+            @for (course of courses(); track trackByCourseId($index, course)) {
+              <option [ngValue]="course.id">{{ course.title }}</option>
+            }
+          </select>
         </label>
+
+        @if (scope === 'module') {
+          <label class="recommendations-filter__field">
+            <span>Модуль</span>
+            <select
+              [ngModel]="selectedModuleId()"
+              name="moduleId"
+              [disabled]="!hasSelectedCourse()"
+              (ngModelChange)="onModuleChange($event)"
+            >
+              <option [ngValue]="null">Выберите модуль</option>
+              @for (module of modules(); track trackByModuleId($index, module)) {
+                <option [ngValue]="module.id">{{ module.title }}</option>
+              }
+            </select>
+          </label>
+        }
       }
 
-      <button class="recommendations-filter__submit" type="submit">
+      <button
+        class="recommendations-filter__submit"
+        type="submit"
+        [disabled]="isFilterLoading() || (scope === 'course' && !hasSelectedCourse()) || (scope === 'module' && !hasSelectedModule())"
+      >
         Применить фильтр
       </button>
     </form>
@@ -94,6 +118,12 @@
               <strong>{{ item.current_percentage | number: '1.0-0' }}%</strong>
             </div>
           </div>
+
+          @if (item.reason) {
+            <div class="recommendation-card__reason">
+              {{ item.reason }}
+            </div>
+          }
 
           @if (item.resource_url) {
             <a
