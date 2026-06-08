@@ -453,12 +453,8 @@ def finish_attempt(
     max_score = sum(question.score for question in questions)
     answers = list(db.scalars(select(UserAnswer).where(UserAnswer.attempt_id == attempt_id)))
     score = sum(answer.score_received for answer in answers)
-    percentage = (score / max_score * 100) if max_score else 0.0
-
     attempt.score = score
     attempt.max_score = max_score
-    attempt.percentage = round(percentage, 2)
-    attempt.is_passed = attempt.percentage >= attempt.test.passing_score
     attempt.finished_at = datetime.now(timezone.utc)
     if attempt.test.module_id is not None:
         upsert_topic_result(db, attempt.user_id, attempt.test.module_id)

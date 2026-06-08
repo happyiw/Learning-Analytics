@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from backend.attempt_metrics import calculate_attempt_is_passed, calculate_attempt_percentage
 from backend.db import Base
 from backend.enums import QuestionType, UserRole
 
@@ -130,7 +131,6 @@ class Lesson(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
-    content: Mapped[str] = mapped_column(Text)
     content_blocks: Mapped[str | None] = mapped_column(Text, nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -150,10 +150,6 @@ class Task(TimestampMixin, Base):
     module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text)
-    task_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    difficulty_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    correct_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     max_score: Mapped[float] = mapped_column(Float, default=0)
     order: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -239,8 +235,6 @@ class TestAttempt(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     score: Mapped[float] = mapped_column(Float, default=0)
     max_score: Mapped[float] = mapped_column(Float, default=0)
-    percentage: Mapped[float] = mapped_column(Float, default=0)
-    is_passed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="test_attempts")
     test: Mapped[Test] = relationship(back_populates="attempts")
@@ -248,6 +242,20 @@ class TestAttempt(Base):
         back_populates="attempt",
         cascade="all, delete-orphan",
     )
+
+    @property
+    def percentage(self) -> float:
+        return calculate_attempt_percentage(self.score, self.max_score)
+
+    @property
+    def is_passed(self) -> bool:
+        passing_score = self.test.passing_score if self.test is not None else 0.0
+        return calculate_attempt_is_passed(
+            self.score,
+            self.max_score,
+            passing_score,
+            self.finished_at,
+        )
 
 
 class CourseEnrollment(CreatedAtMixin, Base):
@@ -327,18 +335,19 @@ class LessonProgress(Base):
     lesson: Mapped[Lesson] = relationship(back_populates="progress_entries")
 
 
-class TopicResult(TimestampMixin, Base):
+class TopicResult(Base):
     __tablename__ = "topic_results"
     __table_args__ = (UniqueConstraint("user_id", "module_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
-    attempts_count: Mapped[int] = mapped_column(Integer, default=0)
-    average_percentage: Mapped[float] = mapped_column(Float, default=0)
-    best_percentage: Mapped[float] = mapped_column(Float, default=0)
-    weakness_level: Mapped[str] = mapped_column(String(50), default="high")
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+    )
 
     user: Mapped[User] = relationship(back_populates="topic_results")
     module: Mapped[Module] = relationship(back_populates="topic_results")
@@ -352,6 +361,5 @@ class Recommendation(TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text)
     resource_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    trigger_score_threshold: Mapped[float] = mapped_column(Float, default=60)
 
     module: Mapped[Module] = relationship(back_populates="recommendations")

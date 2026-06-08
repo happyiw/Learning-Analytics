@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 
 from backend.deps import get_current_user, get_db, require_teacher_or_admin
 from backend.lesson_content import (
+    build_legacy_blocks,
     build_lesson_detail,
     build_lesson_read,
     serialize_lesson_blocks,
-    summarize_lesson_content,
 )
 from backend.models import Course, Lesson, LessonProgress, Module, User
 from backend.schemas import (
@@ -117,11 +117,10 @@ def create_lesson(
     if db.get(Module, payload.module_id) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Module not found.")
 
-    blocks = payload.content_blocks
+    blocks = payload.content_blocks or build_legacy_blocks(payload.content)
     lesson = Lesson(
         module_id=payload.module_id,
         title=payload.title,
-        content=summarize_lesson_content(payload.content, blocks),
         content_blocks=serialize_lesson_blocks(blocks),
         video_url=payload.video_url,
         external_url=payload.external_url,
@@ -146,7 +145,7 @@ def update_lesson(
     if "module_id" in data and db.get(Module, data["module_id"]) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Module not found.")
 
-    content = data.pop("content", lesson.content)
+    content = data.pop("content", None)
     content_blocks = data.pop("content_blocks", None)
 
     for field, value in data.items():
@@ -154,10 +153,8 @@ def update_lesson(
 
     if content_blocks is not None:
         lesson.content_blocks = serialize_lesson_blocks(content_blocks)
-        lesson.content = summarize_lesson_content(content, content_blocks)
     elif "content" in payload.model_fields_set:
-        lesson.content_blocks = None
-        lesson.content = summarize_lesson_content(content, [])
+        lesson.content_blocks = serialize_lesson_blocks(build_legacy_blocks(content))
 
     db.commit()
     db.refresh(lesson)

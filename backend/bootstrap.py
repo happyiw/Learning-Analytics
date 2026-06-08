@@ -8,10 +8,11 @@ from sqlalchemy.orm import Session
 
 from backend.db import SessionLocal
 from backend.lesson_content import (
+    build_legacy_blocks,
     build_intro_svg_data_url,
     serialize_lesson_blocks,
-    summarize_lesson_content,
 )
+from backend.enums import QuestionType
 from backend.models import AnswerOption, Course, Lesson, Question, Test
 from backend.schemas import LessonContentBlock, LessonStatItem
 
@@ -56,7 +57,7 @@ def run_sqlite_migrations(engine: Engine) -> None:
         _ensure_column(connection, "answer_options", "updated_at", "DATETIME")
         _ensure_column(connection, "recommendations", "created_at", "DATETIME")
         _ensure_column(connection, "recommendations", "updated_at", "DATETIME")
-        _ensure_column(connection, "topic_results", "created_at", "DATETIME")
+        _ensure_column(connection, "topic_results", "updated_at", "DATETIME")
 
         _fill_timestamp(connection, "modules", now)
         _fill_timestamp(connection, "lessons", now)
@@ -103,6 +104,12 @@ def run_sqlite_migrations(engine: Engine) -> None:
             )
         )
         connection.execute(text("UPDATE courses SET is_open = COALESCE(is_open, 1)"))
+        _backfill_lesson_blocks_from_content(connection)
+        _rebuild_lessons_table(connection)
+        _rebuild_tasks_table(connection)
+        _rebuild_test_attempts_table(connection)
+        _rebuild_topic_results_table(connection)
+        _rebuild_recommendations_table(connection)
 
 
 def sync_intro_course_content(db: Session) -> None:
@@ -271,7 +278,6 @@ def sync_intro_course_content(db: Session) -> None:
         if lesson is None:
             continue
         lesson.content_blocks = serialize_lesson_blocks(blocks)
-        lesson.content = summarize_lesson_content("", blocks)
 
     intro_test = db.query(Test).filter(Test.id == 1).first()
     if intro_test is not None:
@@ -279,12 +285,15 @@ def sync_intro_course_content(db: Session) -> None:
         intro_test.time_limit = None
         intro_test.attempts_allowed = 1
 
-        question_ids = list(
-            db.query(Question.id).filter(Question.test_id == intro_test.id).all()
+        intro_questions = list(
+            db.query(Question).filter(Question.test_id == intro_test.id).all()
         )
-        flat_question_ids = [question_id for question_id, in question_ids]
+        flat_question_ids = [question.id for question in intro_questions]
+        question_types = {question.id: question.question_type for question in intro_questions}
         if flat_question_ids:
             for option in db.query(AnswerOption).filter(AnswerOption.question_id.in_(flat_question_ids)):
+                if question_types.get(option.question_id) == QuestionType.MULTIPLE_CHOICE:
+                    continue
                 option.is_correct = True
 
     db.commit()
@@ -309,9 +318,286 @@ def _fill_timestamp(connection, table_name: str, now: str) -> None:
             {"now": now},
         )
     if "updated_at" in columns:
+        fallback_column = "created_at" if "created_at" in columns else "NULL"
         connection.execute(
             text(
-                f"UPDATE {table_name} SET updated_at = COALESCE(updated_at, created_at, :now)"
+                f"UPDATE {table_name} SET updated_at = COALESCE(updated_at, {fallback_column}, :now)"
             ),
             {"now": now},
         )
+
+
+def _backfill_lesson_blocks_from_content(connection) -> None:
+    columns = {
+        row[1] for row in connection.execute(text("PRAGMA table_info(lessons)")).fetchall()
+    }
+    if "content" not in columns or "content_blocks" not in columns:
+        return
+
+    rows = connection.execute(
+        text(
+            """
+            SELECT id, content, content_blocks
+            FROM lessons
+            """
+        )
+    ).fetchall()
+    for lesson_id, content, content_blocks in rows:
+        if content_blocks:
+            continue
+        serialized_blocks = serialize_lesson_blocks(build_legacy_blocks(content))
+        connection.execute(
+            text(
+                """
+                UPDATE lessons
+                SET content_blocks = :content_blocks
+                WHERE id = :lesson_id
+                """
+            ),
+            {
+                "lesson_id": lesson_id,
+                "content_blocks": serialized_blocks,
+            },
+        )
+
+
+def _rebuild_lessons_table(connection) -> None:
+    expected_columns = {
+        "id",
+        "module_id",
+        "title",
+        "content_blocks",
+        "video_url",
+        "external_url",
+        "order",
+        "created_at",
+        "updated_at",
+    }
+    _rebuild_table(
+        connection,
+        table_name="lessons",
+        expected_columns=expected_columns,
+        create_sql="""
+            CREATE TABLE lessons__new (
+                id INTEGER NOT NULL,
+                module_id INTEGER NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                content_blocks TEXT,
+                video_url VARCHAR(500),
+                external_url VARCHAR(500),
+                "order" INTEGER NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                FOREIGN KEY(module_id) REFERENCES modules (id)
+            )
+        """,
+        insert_sql="""
+            INSERT INTO lessons__new (
+                id, module_id, title, content_blocks, video_url, external_url, "order", created_at, updated_at
+            )
+            SELECT
+                id, module_id, title, content_blocks, video_url, external_url, "order", created_at, updated_at
+            FROM lessons
+        """,
+        index_sql=[
+            "CREATE INDEX ix_lessons_module_id ON lessons (module_id)",
+        ],
+    )
+
+
+def _rebuild_tasks_table(connection) -> None:
+    expected_columns = {
+        "id",
+        "module_id",
+        "title",
+        "description",
+        "max_score",
+        "order",
+        "created_at",
+        "updated_at",
+    }
+    _rebuild_table(
+        connection,
+        table_name="tasks",
+        expected_columns=expected_columns,
+        create_sql="""
+            CREATE TABLE tasks__new (
+                id INTEGER NOT NULL,
+                module_id INTEGER NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                max_score FLOAT NOT NULL,
+                "order" INTEGER NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                FOREIGN KEY(module_id) REFERENCES modules (id)
+            )
+        """,
+        insert_sql="""
+            INSERT INTO tasks__new (
+                id, module_id, title, description, max_score, "order", created_at, updated_at
+            )
+            SELECT
+                id, module_id, title, description, max_score, "order", created_at, updated_at
+            FROM tasks
+        """,
+        index_sql=[
+            "CREATE INDEX ix_tasks_module_id ON tasks (module_id)",
+        ],
+    )
+
+
+def _rebuild_test_attempts_table(connection) -> None:
+    expected_columns = {
+        "id",
+        "user_id",
+        "test_id",
+        "started_at",
+        "finished_at",
+        "score",
+        "max_score",
+    }
+    _rebuild_table(
+        connection,
+        table_name="test_attempts",
+        expected_columns=expected_columns,
+        create_sql="""
+            CREATE TABLE test_attempts__new (
+                id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                test_id INTEGER NOT NULL,
+                started_at DATETIME NOT NULL,
+                finished_at DATETIME,
+                score FLOAT NOT NULL,
+                max_score FLOAT NOT NULL,
+                PRIMARY KEY (id),
+                FOREIGN KEY(user_id) REFERENCES users (id),
+                FOREIGN KEY(test_id) REFERENCES tests (id)
+            )
+        """,
+        insert_sql="""
+            INSERT INTO test_attempts__new (
+                id, user_id, test_id, started_at, finished_at, score, max_score
+            )
+            SELECT
+                id, user_id, test_id, started_at, finished_at, score, max_score
+            FROM test_attempts
+        """,
+        index_sql=[
+            "CREATE INDEX ix_test_attempts_user_id ON test_attempts (user_id)",
+            "CREATE INDEX ix_test_attempts_test_id ON test_attempts (test_id)",
+        ],
+    )
+
+
+def _rebuild_topic_results_table(connection) -> None:
+    expected_columns = {
+        "id",
+        "user_id",
+        "module_id",
+        "last_attempt_at",
+        "updated_at",
+    }
+    _rebuild_table(
+        connection,
+        table_name="topic_results",
+        expected_columns=expected_columns,
+        create_sql="""
+            CREATE TABLE topic_results__new (
+                id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                module_id INTEGER NOT NULL,
+                last_attempt_at DATETIME,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE (user_id, module_id),
+                FOREIGN KEY(user_id) REFERENCES users (id),
+                FOREIGN KEY(module_id) REFERENCES modules (id)
+            )
+        """,
+        insert_sql="""
+            INSERT INTO topic_results__new (
+                id, user_id, module_id, last_attempt_at, updated_at
+            )
+            SELECT
+                id,
+                user_id,
+                module_id,
+                last_attempt_at,
+                COALESCE(updated_at, CURRENT_TIMESTAMP)
+            FROM topic_results
+        """,
+        index_sql=[
+            "CREATE INDEX ix_topic_results_user_id ON topic_results (user_id)",
+            "CREATE INDEX ix_topic_results_module_id ON topic_results (module_id)",
+        ],
+    )
+
+
+def _rebuild_recommendations_table(connection) -> None:
+    expected_columns = {
+        "id",
+        "module_id",
+        "title",
+        "description",
+        "resource_url",
+        "created_at",
+        "updated_at",
+    }
+    _rebuild_table(
+        connection,
+        table_name="recommendations",
+        expected_columns=expected_columns,
+        create_sql="""
+            CREATE TABLE recommendations__new (
+                id INTEGER NOT NULL,
+                module_id INTEGER NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                resource_url VARCHAR(500),
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                FOREIGN KEY(module_id) REFERENCES modules (id)
+            )
+        """,
+        insert_sql="""
+            INSERT INTO recommendations__new (
+                id, module_id, title, description, resource_url, created_at, updated_at
+            )
+            SELECT
+                id, module_id, title, description, resource_url, created_at, updated_at
+            FROM recommendations
+        """,
+        index_sql=[
+            "CREATE INDEX ix_recommendations_module_id ON recommendations (module_id)",
+        ],
+    )
+
+
+def _rebuild_table(
+    connection,
+    *,
+    table_name: str,
+    expected_columns: set[str],
+    create_sql: str,
+    insert_sql: str,
+    index_sql: list[str],
+) -> None:
+    current_columns = {
+        row[1] for row in connection.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+    }
+    if current_columns == expected_columns:
+        return
+
+    connection.execute(text("PRAGMA foreign_keys = OFF"))
+    connection.execute(text(f"DROP TABLE IF EXISTS {table_name}__new"))
+    connection.execute(text(create_sql))
+    connection.execute(text(insert_sql))
+    connection.execute(text(f"DROP TABLE {table_name}"))
+    connection.execute(text(f"ALTER TABLE {table_name}__new RENAME TO {table_name}"))
+    for statement in index_sql:
+        connection.execute(text(statement))
+    connection.execute(text("PRAGMA foreign_keys = ON"))

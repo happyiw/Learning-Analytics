@@ -2,65 +2,57 @@
   {
     "id": 1,
     "module_id": 1,
-    "title": "Повторить базовые понятия IoT",
-    "description": "Рекомендуется повторить определение Интернета вещей, роль интеллектуальных объектов, датчиков, исполнительных механизмов, встроенных систем и коммуникаций.",
-    "resource_url": null,
-    "trigger_score_threshold": 60.0
+    "title": "Review Core IoT Concepts",
+    "description": "Revisit the definition of IoT, the roles of smart objects, sensors, actuators, embedded systems, and communication channels.",
+    "resource_url": null
   },
   {
     "id": 2,
     "module_id": 1,
-    "title": "Разобрать области применения IoT",
-    "description": "Обратите внимание на различия между умным домом, медициной, транспортом, энергетикой, промышленностью и городской инфраструктурой.",
-    "resource_url": null,
-    "trigger_score_threshold": 70.0
+    "title": "Compare IoT Application Areas",
+    "description": "Focus on the differences between smart home, medicine, transport, energy, industry, and city infrastructure scenarios.",
+    "resource_url": null
   },
   {
     "id": 3,
     "module_id": 2,
-    "title": "Повторить классификацию угроз IoT",
-    "description": "Необходимо повторить группы угроз: умышленные действия, перехват информации, отключения, технические сбои, катастрофы и физические атаки.",
-    "resource_url": null,
-    "trigger_score_threshold": 65.0
+    "title": "Repeat IoT Threat Classification",
+    "description": "Review the main threat groups: malicious actions, interception, outages, technical failures, disasters, and physical attacks.",
+    "resource_url": null
   },
   {
     "id": 4,
     "module_id": 2,
-    "title": "Уточнить особенности IIoT-рисков",
-    "description": "Рекомендуется повторить различия между IoT и IIoT, конвергенцию IT/OT, устаревшие промышленные системы, небезопасные протоколы и человеческий фактор.",
-    "resource_url": null,
-    "trigger_score_threshold": 75.0
+    "title": "Clarify IIoT Risk Patterns",
+    "description": "Repeat the differences between IoT and IIoT, IT/OT convergence, legacy industrial systems, unsafe protocols, and human factors.",
+    "resource_url": null
   },
   {
     "id": 5,
     "module_id": 3,
-    "title": "Разобрать практические сценарии атак",
-    "description": "Повторите сценарии атак на датчики, исполнительные механизмы, сетевые соединения, системы администрирования и ботнеты IoT.",
-    "resource_url": null,
-    "trigger_score_threshold": 70.0
+    "title": "Review Practical Attack Scenarios",
+    "description": "Go back through attack scenarios against sensors, actuators, network connections, management systems, and IoT botnets.",
+    "resource_url": null
   },
   {
     "id": 6,
     "module_id": 3,
-    "title": "Повторить цифровую экспертизу IoT",
-    "description": "Обратите внимание на источники цифровых доказательств: устройства, сопряженные смартфоны, сети, приложения, облачные сервисы и журналы событий.",
-    "resource_url": null,
-    "trigger_score_threshold": 75.0
+    "title": "Repeat IoT Digital Forensics",
+    "description": "Revisit evidence sources such as devices, paired smartphones, networks, applications, cloud services, and event logs.",
+    "resource_url": null
   },
   {
     "id": 7,
     "module_id": 4,
-    "title": "Повторить организационные меры защиты",
-    "description": "Рекомендуется повторить политику безопасности, управление рисками, распределение ответственности, обучение персонала и готовность к инцидентам.",
-    "resource_url": null,
-    "trigger_score_threshold": 70.0
+    "title": "Repeat Organizational Controls",
+    "description": "Return to policy, risk management, responsibility distribution, staff training, and incident readiness.",
+    "resource_url": null
   },
   {
     "id": 8,
     "module_id": 4,
-    "title": "Повторить технические меры защиты",
-    "description": "Необходимо повторить управление доступом, аутентификацию, шифрование, сегментацию сети, журналирование, мониторинг и безопасные обновления.",
-    "resource_url": null,
-    "trigger_score_threshold": 80.0
+    "title": "Repeat Technical Controls",
+    "description": "Revisit access control, authentication, encryption, segmentation, logging, monitoring, and secure update practices.",
+    "resource_url": null
   }
 ]

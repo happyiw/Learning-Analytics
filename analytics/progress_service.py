@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 
+from backend.attempt_metrics import build_attempt_percentage_expression
 from backend.enums import UserRole
 from backend.models import Course, CourseEnrollment, Lesson, LessonProgress, Module, Test, TestAttempt, User
 from backend.schemas import ProgressRead
@@ -204,14 +205,21 @@ class ProgressService:
             if lesson_ids
             else 0
         )
+        percentage_expr = build_attempt_percentage_expression(
+            TestAttempt.score,
+            TestAttempt.max_score,
+        )
         passed_tests = (
             len(
                 list(
                     self.db.scalars(
-                        select(distinct(TestAttempt.test_id)).where(
+                        select(distinct(TestAttempt.test_id))
+                        .join(Test, Test.id == TestAttempt.test_id)
+                        .where(
                             TestAttempt.user_id == user_id,
-                            TestAttempt.is_passed.is_(True),
+                            TestAttempt.finished_at.is_not(None),
                             TestAttempt.test_id.in_(test_ids),
+                            percentage_expr >= Test.passing_score,
                         )
                     )
                 )
@@ -222,7 +230,8 @@ class ProgressService:
         percentages = (
             list(
                 self.db.scalars(
-                    select(TestAttempt.percentage).where(
+                    select(percentage_expr)
+                    .where(
                         TestAttempt.user_id == user_id,
                         TestAttempt.finished_at.is_not(None),
                         TestAttempt.test_id.in_(test_ids),

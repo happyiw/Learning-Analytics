@@ -26,9 +26,9 @@ export interface PersonalRecommendation {
   title: string;
   description: string;
   resource_url: string | null;
-  trigger_score_threshold: number;
   current_percentage: number;
   weakness_level: string;
+  rule_key?: string | null;
   priority?: string | null;
   reason?: string | null;
   topic_reason?: string | null;

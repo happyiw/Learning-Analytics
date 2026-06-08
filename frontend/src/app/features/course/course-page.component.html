@@ -88,7 +88,7 @@
               <div>
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.description }}</p>
-                <small>{{ item.module_title }} • порог {{ item.trigger_score_threshold | number: '1.0-0' }}%</small>
+                <small>{{ item.module_title }} • {{ item.reason || 'Подборка материалов по модулю' }}</small>
               </div>
               @if (item.resource_url) {
                 <a class="stack-item__button" [href]="item.resource_url" target="_blank" rel="noopener noreferrer">

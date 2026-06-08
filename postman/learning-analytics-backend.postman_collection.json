@@ -668,7 +668,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{taskTitle}}\",\n  \"description\": \"Solve the verification task\",\n  \"task_type\": \"text\",\n  \"difficulty_level\": \"medium\",\n  \"correct_answer\": \"expected answer\",\n  \"explanation\": \"Task explanation\",\n  \"max_score\": 5,\n  \"order\": 1\n}"
+              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{taskTitle}}\",\n  \"description\": \"Solve the verification task\",\n  \"max_score\": 5,\n  \"order\": 1\n}"
             },
             "url": "{{baseUrl}}/api/tasks/"
           },
@@ -729,7 +729,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"{{taskUpdatedTitle}}\",\n  \"explanation\": \"Updated task explanation\"\n}"
+              "raw": "{\n  \"title\": \"{{taskUpdatedTitle}}\",\n  \"max_score\": 6\n}"
             },
             "url": "{{baseUrl}}/api/tasks/{{taskId}}/"
           },
@@ -792,7 +792,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{recommendationTitle}}\",\n  \"description\": \"Study the topic again and review the provided resource.\",\n  \"resource_url\": \"{{recommendationResourceUrl}}\",\n  \"trigger_score_threshold\": 60\n}"
+              "raw": "{\n  \"module_id\": {{moduleId}},\n  \"title\": \"{{recommendationTitle}}\",\n  \"description\": \"Study the topic again and review the provided resource.\",\n  \"resource_url\": \"{{recommendationResourceUrl}}\"\n}"
             },
             "url": "{{baseUrl}}/api/recommendations/"
           },
@@ -840,7 +840,7 @@
                   "});",
                   "const json = pm.response.json();",
                   "pm.expect(json.title).to.eql(pm.collectionVariables.get('recommendationUpdatedTitle'));",
-                  "pm.expect(json.trigger_score_threshold).to.eql(80);"
+                  "pm.expect(json.resource_url).to.eql(pm.collectionVariables.get('recommendationResourceUrl'));"
                 ]
               }
             }
@@ -859,7 +859,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"{{recommendationUpdatedTitle}}\",\n  \"trigger_score_threshold\": 80\n}"
+              "raw": "{\n  \"title\": \"{{recommendationUpdatedTitle}}\"\n}"
             },
             "url": "{{baseUrl}}/api/recommendations/{{recommendationId}}/"
           },

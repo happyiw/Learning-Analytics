@@ -1,7 +1,7 @@
 {
   "dataset_name": "iot_security_demo_seed_data",
   "language": "ru",
-  "source_basis": "Учебное пособие «Проблемы безопасности Интернета вещей»; материалы адаптированы и сокращены для демонстрационного прототипа ВКР.",
+  "source_basis": "Учебные материалы по безопасности IoT, адаптированные для демонстрационного прототипа.",
   "intended_backend": "FastAPI + SQLAlchemy prototype described in BackendUpdates.md",
   "import_order": [
     "users.json",
@@ -26,8 +26,8 @@
     "recommendations": 8
   },
   "notes": [
-    "Пароли в users.json указаны в открытом виде только для демонстрационного seed-скрипта; при импорте их нужно хешировать.",
-    "Поле correct_answer в tasks.json предназначено для преподавательской части и не должно возвращаться студенту в публичном API.",
-    "Вопросы имеют тип single_choice и четыре варианта ответа, один из которых помечен is_correct=true."
+    "Пароли в users.json хранятся в открытом виде только для демонстрационного импорта и должны хешироваться при загрузке.",
+    "tasks.json теперь содержит только публичные поля задания: title, description, max_score и order.",
+    "recommendations.json хранит только контент рекомендации; правила показа задаются в RecommendationService."
   ]
 }

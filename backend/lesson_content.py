@@ -61,12 +61,12 @@ def summarize_lesson_content(content: str | None, blocks: Iterable[LessonContent
 
 
 def build_lesson_read(lesson: Lesson) -> LessonRead:
-    blocks = parse_lesson_blocks(lesson.content_blocks, lesson.content)
+    blocks = parse_lesson_blocks(lesson.content_blocks)
     return LessonRead(
         id=lesson.id,
         module_id=lesson.module_id,
         title=lesson.title,
-        content=lesson.content,
+        content=summarize_lesson_content(None, blocks),
         content_blocks=blocks,
         video_url=lesson.video_url,
         external_url=lesson.external_url,

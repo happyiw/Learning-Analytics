@@ -75,8 +75,7 @@ def compute_topic_result_row(
             best_percentage=0.0,
             weakness_level="not_enough_data",
             last_attempt_at=None,
-            created_at=module.created_at,
-            updated_at=module.updated_at,
+            updated_at=None,
         )
     return TopicResultRead(**payload[0])
 

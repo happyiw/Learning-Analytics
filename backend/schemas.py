@@ -216,10 +216,6 @@ class TaskCreate(BaseModel):
     module_id: int
     title: str
     description: str
-    task_type: str | None = None
-    difficulty_level: str | None = None
-    correct_answer: str | None = None
-    explanation: str | None = None
     max_score: float = 0
     order: int = 0
 
@@ -228,10 +224,6 @@ class TaskUpdate(BaseModel):
     module_id: int | None = None
     title: str | None = None
     description: str | None = None
-    task_type: str | None = None
-    difficulty_level: str | None = None
-    correct_answer: str | None = None
-    explanation: str | None = None
     max_score: float | None = None
     order: int | None = None
 
@@ -241,15 +233,12 @@ class TaskRead(TimestampedRead):
     module_id: int
     title: str
     description: str
-    task_type: str | None = None
-    difficulty_level: str | None = None
-    explanation: str | None = None
     max_score: float
     order: int
 
 
 class TaskAdminRead(TaskRead):
-    correct_answer: str | None = None
+    pass
 
 
 class TestCreate(BaseModel):
@@ -435,7 +424,7 @@ class ProgressRead(BaseModel):
     completion_rate: float
 
 
-class TopicResultRead(TimestampedRead):
+class TopicResultRead(BaseModel):
     id: int | None = None
     module_id: int
     module_title: str
@@ -444,6 +433,7 @@ class TopicResultRead(TimestampedRead):
     best_percentage: float
     weakness_level: str
     last_attempt_at: datetime | None = None
+    updated_at: datetime | None = None
     reason: str | None = None
     category: str | None = None
 
@@ -465,7 +455,6 @@ class RecommendationCreate(BaseModel):
     title: str
     description: str
     resource_url: str | None = None
-    trigger_score_threshold: float = 60
 
 
 class RecommendationUpdate(BaseModel):
@@ -473,7 +462,6 @@ class RecommendationUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     resource_url: str | None = None
-    trigger_score_threshold: float | None = None
 
 
 class RecommendationRead(TimestampedRead):
@@ -482,7 +470,6 @@ class RecommendationRead(TimestampedRead):
     title: str
     description: str
     resource_url: str | None = None
-    trigger_score_threshold: float
 
 
 class PersonalRecommendationRead(BaseModel):
@@ -492,9 +479,9 @@ class PersonalRecommendationRead(BaseModel):
     title: str
     description: str
     resource_url: str | None = None
-    trigger_score_threshold: float
     current_percentage: float
     weakness_level: str
+    rule_key: str | None = None
     priority: str | None = None
     reason: str | None = None
     topic_reason: str | None = None

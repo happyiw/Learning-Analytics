@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy import distinct, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from backend.attempt_metrics import calculate_attempt_is_passed
 from analytics.progress_service import ProgressService
 from analytics.topic_result_service import WeakTopicDetector
 from backend.models import LessonProgress, Test, TestAttempt
@@ -19,9 +20,24 @@ class StudentSummaryService:
         self.weak_topic_detector = WeakTopicDetector(db)
 
     def get_summary(self, user_id: int) -> dict:
-        attempts = list(self.db.scalars(select(TestAttempt).where(TestAttempt.user_id == user_id)))
+        attempts = list(
+            self.db.scalars(
+                select(TestAttempt)
+                .where(TestAttempt.user_id == user_id)
+                .options(selectinload(TestAttempt.test))
+            )
+        )
         completed_attempts = [attempt for attempt in attempts if attempt.finished_at is not None]
-        passed_attempts = [attempt for attempt in attempts if attempt.is_passed]
+        passed_attempts = [
+            attempt
+            for attempt in completed_attempts
+            if calculate_attempt_is_passed(
+                attempt.score,
+                attempt.max_score,
+                attempt.test.passing_score if attempt.test is not None else 0.0,
+                attempt.finished_at,
+            )
+        ]
         lessons_completed = len(
             list(
                 self.db.scalars(

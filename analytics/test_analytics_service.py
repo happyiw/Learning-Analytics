@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from backend.attempt_metrics import calculate_attempt_status
 from backend.models import TestAttempt
 
 
@@ -50,7 +51,7 @@ class TestAnalyticsService:
             score = sum(answer.score_received for answer in attempt.answers)
         if attempt.max_score > 0:
             return round((score / attempt.max_score) * 100, 2)
-        return round(attempt.percentage, 2)
+        return 0.0
 
     def calculate_attempts_count(self, attempts: list[TestAttempt]) -> int:
         return len(attempts)
@@ -79,9 +80,7 @@ class TestAnalyticsService:
     def calculate_status(self, attempt: TestAttempt | None) -> str:
         if attempt is None:
             return "not_started"
-        if attempt.finished_at is None:
-            return "in_progress"
-        return "passed" if attempt.is_passed else "failed"
+        return calculate_attempt_status(attempt.finished_at, attempt.is_passed)
 
     def build_attempt_snapshot(self, attempt: TestAttempt) -> dict:
         snapshot = AttemptAnalyticsSnapshot(

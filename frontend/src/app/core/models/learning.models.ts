@@ -71,9 +71,6 @@ export interface TaskItem {
   module_id: number;
   title: string;
   description: string;
-  task_type: string | null;
-  difficulty_level: string | null;
-  explanation: string | null;
   max_score: number;
   order: number;
   created_at: string;

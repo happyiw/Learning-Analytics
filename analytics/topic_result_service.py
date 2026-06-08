@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from analytics.progress_service import ProgressService
-from backend.models import Module, TestAttempt, TopicResult
+from backend.attempt_metrics import build_attempt_percentage_expression
+from backend.models import Module, Test, TestAttempt, TopicResult
 
 
 class TopicResultService:
@@ -19,13 +20,9 @@ class TopicResultService:
 
         values = self._calculate_topic_result_values(user_id, module_id)
         topic_result = self.get_or_create_topic_result(user_id, module_id)
-        topic_result.attempts_count = values["attempts_count"]
-        topic_result.average_percentage = values["average_percentage"]
-        topic_result.best_percentage = values["best_percentage"]
-        topic_result.weakness_level = values["weakness_level"]
         topic_result.last_attempt_at = values["last_attempt_at"]
         self.db.flush()
-        return self._serialize_topic_result(topic_result, module)
+        return self._serialize_topic_result(topic_result, module, values)
 
     def get_or_create_topic_result(self, user_id: int, module_id: int) -> TopicResult:
         topic_result = self.db.scalar(
@@ -38,16 +35,6 @@ class TopicResultService:
             topic_result = TopicResult(user_id=user_id, module_id=module_id)
             self.db.add(topic_result)
         return topic_result
-
-    def calculate_average_percentage(self, attempts: list[TestAttempt]) -> float:
-        if not attempts:
-            return 0.0
-        return round(sum(attempt.percentage for attempt in attempts) / len(attempts), 2)
-
-    def calculate_best_percentage(self, attempts: list[TestAttempt]) -> float:
-        if not attempts:
-            return 0.0
-        return round(max(attempt.percentage for attempt in attempts), 2)
 
     def calculate_weakness_level(self, average_percentage: float, attempts_count: int) -> str:
         if attempts_count == 0:
@@ -83,15 +70,54 @@ class TopicResultService:
         return [self._build_topic_result_payload(user_id, module) for module in modules]
 
     def _build_topic_result_payload(self, user_id: int, module: Module) -> dict:
-        existing = self.db.scalar(
+        topic_result = self.db.scalar(
             select(TopicResult).where(
                 TopicResult.user_id == user_id,
                 TopicResult.module_id == module.id,
             )
         )
         values = self._calculate_topic_result_values(user_id, module.id)
-        payload = {
-            "id": existing.id if existing else None,
+        return self._serialize_topic_result(topic_result, module, values)
+
+    def _calculate_topic_result_values(self, user_id: int, module_id: int) -> dict:
+        percentage_expr = build_attempt_percentage_expression(
+            TestAttempt.score,
+            TestAttempt.max_score,
+        )
+        row = self.db.execute(
+            select(
+                func.count(TestAttempt.id),
+                func.avg(percentage_expr),
+                func.max(percentage_expr),
+                func.max(TestAttempt.finished_at),
+            )
+            .join(Test, Test.id == TestAttempt.test_id)
+            .where(
+                TestAttempt.user_id == user_id,
+                TestAttempt.finished_at.is_not(None),
+                Test.module_id == module_id,
+            )
+        ).one()
+
+        attempts_count = int(row[0] or 0)
+        average_percentage = round(float(row[1] or 0.0), 2)
+        best_percentage = round(float(row[2] or 0.0), 2)
+        return {
+            "attempts_count": attempts_count,
+            "average_percentage": average_percentage,
+            "best_percentage": best_percentage,
+            "weakness_level": self.calculate_weakness_level(average_percentage, attempts_count),
+            "last_attempt_at": row[3],
+        }
+
+    def _serialize_topic_result(
+        self,
+        topic_result: TopicResult | None,
+        module: Module,
+        values: dict,
+    ) -> dict:
+        return {
+            "id": topic_result.id if topic_result else None,
             "module_id": module.id,
             "module_title": module.title,
             "attempts_count": values["attempts_count"],
@@ -99,54 +125,7 @@ class TopicResultService:
             "best_percentage": values["best_percentage"],
             "weakness_level": values["weakness_level"],
             "last_attempt_at": values["last_attempt_at"],
-            "created_at": existing.created_at if existing else module.created_at,
-            "updated_at": existing.updated_at if existing else module.updated_at,
-        }
-        return payload
-
-    def _calculate_topic_result_values(self, user_id: int, module_id: int) -> dict:
-        attempts = self._get_finished_attempts(user_id, module_id)
-        attempts_count = len(attempts)
-        average_percentage = self.calculate_average_percentage(attempts)
-        best_percentage = self.calculate_best_percentage(attempts)
-        weakness_level = self.calculate_weakness_level(average_percentage, attempts_count)
-        last_attempt_at = attempts[-1].finished_at if attempts else None
-        return {
-            "attempts_count": attempts_count,
-            "average_percentage": average_percentage,
-            "best_percentage": best_percentage,
-            "weakness_level": weakness_level,
-            "last_attempt_at": last_attempt_at,
-        }
-
-    def _get_finished_attempts(self, user_id: int, module_id: int) -> list[TestAttempt]:
-        test_ids = self.progress_service.get_scope_test_ids(user_id, module_id=module_id)
-        if not test_ids:
-            return []
-        return list(
-            self.db.scalars(
-                select(TestAttempt)
-                .where(
-                    TestAttempt.user_id == user_id,
-                    TestAttempt.finished_at.is_not(None),
-                    TestAttempt.test_id.in_(test_ids),
-                )
-                .order_by(TestAttempt.finished_at, TestAttempt.id)
-            )
-        )
-
-    def _serialize_topic_result(self, topic_result: TopicResult, module: Module) -> dict:
-        return {
-            "id": topic_result.id,
-            "module_id": module.id,
-            "module_title": module.title,
-            "attempts_count": topic_result.attempts_count,
-            "average_percentage": round(topic_result.average_percentage, 2),
-            "best_percentage": round(topic_result.best_percentage, 2),
-            "weakness_level": topic_result.weakness_level,
-            "last_attempt_at": topic_result.last_attempt_at,
-            "created_at": topic_result.created_at,
-            "updated_at": topic_result.updated_at,
+            "updated_at": topic_result.updated_at if topic_result else None,
         }
 
 
@@ -228,14 +207,14 @@ class WeakTopicDetector:
         if weakness_level == "medium":
             return (
                 f"Средний результат по теме составляет {average_percentage:.2f}%, "
-                "поэтому тема требует дополнительного повторения и закрепления."
+                "поэтому тему стоит дополнительно повторить и закрепить."
             )
         if weakness_level == "low":
             return (
                 f"Тема в целом усвоена, но средний результат {average_percentage:.2f}% "
                 f"и лучший результат {best_percentage:.2f}% оставляют пространство для улучшения."
             )
-        return "Тема не относится к числу слабых, но была проанализирована для полноты аналитики."
+        return "Тема не относится к слабым, но включена в общую аналитику."
 
     def determine_strong_topic_reason(self, topic_result: dict) -> str:
         attempts_count = topic_result["attempts_count"]
@@ -245,12 +224,11 @@ class WeakTopicDetector:
         if attempts_count == 0:
             return "Тема пока не оценена: завершенных попыток нет."
         if average_percentage >= 90:
-            return (
-                f"Средний результат {average_percentage:.2f}% показывает устойчиво высокое освоение темы."
-            )
+            return f"Средний результат {average_percentage:.2f}% показывает устойчиво высокое освоение темы."
         if best_percentage >= 90:
             return (
-                f"Лучший результат {best_percentage:.2f}% показывает, что тема может быть отнесена к сильным сторонам пользователя."
+                f"Лучший результат {best_percentage:.2f}% показывает, "
+                "что тема может считаться одной из сильных сторон пользователя."
             )
         return (
             f"Средний результат {average_percentage:.2f}% и лучший результат {best_percentage:.2f}% "

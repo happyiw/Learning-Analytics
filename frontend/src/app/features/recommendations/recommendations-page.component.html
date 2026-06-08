@@ -110,8 +110,8 @@
               <strong>{{ item.module_title }}</strong>
             </div>
             <div>
-              <span>Порог срабатывания</span>
-              <strong>{{ item.trigger_score_threshold | number: '1.0-0' }}%</strong>
+              <span>Приоритет</span>
+              <strong>{{ item.priority || 'normal' }}</strong>
             </div>
             <div>
               <span>Текущий результат</span>
