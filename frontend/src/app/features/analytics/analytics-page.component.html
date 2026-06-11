@@ -3,8 +3,8 @@
     <span class="analytics-hero__badge">Персональная аналитика</span>
     <h1>Наглядная картина ваших результатов и учебной динамики.</h1>
     <p>
-      Это прототип аналитической страницы. Здесь собрана ключевая сводка, сильные
-      и слабые темы, а также динамика по датам.
+      Здесь собраны общая сводка, динамика попыток и расширенные результаты по темам, включая риск, тренд
+      и состояние обучения.
     </p>
   </article>
 
@@ -27,13 +27,13 @@
       <article class="summary-card">
         <span>Средний результат</span>
         <strong>{{ data.summary.average_percentage | number: '1.0-0' }}%</strong>
-        <p>Средний процент по завершённым тестовым попыткам.</p>
+        <p>Средний процент по завершенным тестовым попыткам.</p>
       </article>
 
       <article class="summary-card">
         <span>Лучший результат</span>
         <strong>{{ bestAverageResult() | number: '1.0-0' }}%</strong>
-        <p>Максимальный лучший результат среди всех изучаемых тем.</p>
+        <p>Максимальный лучший результат среди изучаемых тем.</p>
       </article>
 
       <article class="summary-card">
@@ -43,15 +43,27 @@
       </article>
 
       <article class="summary-card">
-        <span>Завершено уроков</span>
-        <strong>{{ data.summary.lessons_completed }}</strong>
-        <p>Количество завершённых уроков по всем доступным материалам.</p>
-      </article>
-
-      <article class="summary-card">
         <span>Слабых тем</span>
         <strong>{{ data.weakTopics.length }}</strong>
         <p>Темы, которым стоит уделить дополнительное внимание.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Нестабильных тем</span>
+        <strong>{{ data.unstableTopics.length }}</strong>
+        <p>Темы с заметными колебаниями результата между попытками.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Улучшающихся тем</span>
+        <strong>{{ data.improvingTopics.length }}</strong>
+        <p>Темы, по которым уже наблюдается положительная динамика.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Мало данных</span>
+        <strong>{{ data.topicsWithoutEnoughData.length }}</strong>
+        <p>Темы, по которым пока рано делать уверенные выводы.</p>
       </article>
     </section>
 
@@ -117,7 +129,7 @@
       <article class="table-card">
         <div class="table-card__header">
           <span>Слабые темы</span>
-          <strong>Таблица зон роста</strong>
+          <strong>Зоны роста</strong>
         </div>
 
         @if (data.weakTopics.length) {
@@ -127,7 +139,7 @@
                 <th>Тема</th>
                 <th>Попытки</th>
                 <th>Средний</th>
-                <th>Лучший</th>
+                <th>Тренд</th>
               </tr>
             </thead>
             <tbody>
@@ -136,7 +148,7 @@
                   <td>{{ item.module_title }}</td>
                   <td>{{ item.attempts_count }}</td>
                   <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
-                  <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.trend }}</td>
                 </tr>
               }
             </tbody>
@@ -149,26 +161,26 @@
       <article class="table-card">
         <div class="table-card__header">
           <span>Сильные темы</span>
-          <strong>Таблица лучших результатов</strong>
+          <strong>Лучшие результаты</strong>
         </div>
 
-        @if (data.bestTopics.length) {
+        @if (data.strongTopics.length) {
           <table>
             <thead>
               <tr>
                 <th>Тема</th>
                 <th>Попытки</th>
                 <th>Средний</th>
-                <th>Лучший</th>
+                <th>Состояние</th>
               </tr>
             </thead>
             <tbody>
-              @for (item of data.bestTopics; track trackByModuleId($index, item)) {
+              @for (item of data.strongTopics; track trackByModuleId($index, item)) {
                 <tr>
                   <td>{{ item.module_title }}</td>
                   <td>{{ item.attempts_count }}</td>
                   <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
-                  <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.learning_state || 'n/a' }}</td>
                 </tr>
               }
             </tbody>
@@ -193,7 +205,10 @@
               <th>Попытки</th>
               <th>Средний</th>
               <th>Лучший</th>
-              <th>Уровень</th>
+              <th>Тренд</th>
+              <th>Риск</th>
+              <th>Состояние</th>
+              <th>Причина</th>
               <th>Последняя дата</th>
             </tr>
           </thead>
@@ -204,7 +219,10 @@
                 <td>{{ item.attempts_count }}</td>
                 <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
                 <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
-                <td>{{ item.weakness_level }}</td>
+                <td>{{ item.trend }}</td>
+                <td>{{ item.risk_level || 'n/a' }}</td>
+                <td>{{ item.learning_state || 'n/a' }}</td>
+                <td>{{ item.reason || item.reason_code || 'n/a' }}</td>
                 <td>{{ item.last_attempt_at ? (item.last_attempt_at | date: 'dd.MM.yyyy') : 'Нет данных' }}</td>
               </tr>
             }

@@ -10,7 +10,9 @@ import {
   ModuleItem,
   ModulePageSnapshot,
   PublicQuestion,
+  QuestionAnalytics,
   TaskItem,
+  TestAnalytics,
   TestAttempt,
   TestItem,
   UnfinishedAttempt,
@@ -116,6 +118,10 @@ export class LearningService {
     return this.http.get<TestAttempt>(`/api/tests/${testId}/active-attempt/`);
   }
 
+  getTestAnalytics(testId: number): Observable<TestAnalytics> {
+    return this.http.get<TestAnalytics>(`/api/tests/${testId}/analytics/my/`);
+  }
+
   getUnfinishedAttempts(): Observable<UnfinishedAttempt[]> {
     return this.http.get<UnfinishedAttempt[]>(`/api/test-attempts/my/unfinished/`);
   }
@@ -138,5 +144,10 @@ export class LearningService {
 
   getAttemptResult(attemptId: number): Observable<AttemptResult> {
     return this.http.get<AttemptResult>(`/api/test-attempts/${attemptId}/result/`);
+  }
+
+  getTestQuestionAnalytics(testId: number, userId?: number | null): Observable<QuestionAnalytics[]> {
+    const query = typeof userId === 'number' ? `?user_id=${userId}` : '';
+    return this.http.get<QuestionAnalytics[]>(`/api/analytics/tests/${testId}/questions/${query}`);
   }
 }

@@ -2,54 +2,62 @@
 
 ## 1. Назначение проекта
 
-Проект представляет собой учебную платформу с аналитикой обучения. Пользователь проходит курсы, модули, уроки, задания и тесты, а система:
+Проект представляет собой учебную веб-платформу, в которой пользователь проходит курсы, изучает уроки, выполняет задания, сдает тесты и получает персональную аналитику.  
+Система не хранит лишние агрегаты в базе, а строит большую часть аналитики на лету по фактическим данным: попыткам тестов, прогрессу по урокам, ответам на вопросы и зачислениям на курсы.
 
-- хранит учебный контент и результаты работы;
-- отслеживает прогресс по урокам и тестам;
-- формирует аналитику по попыткам и темам;
-- показывает персональные рекомендации по повторению материала.
+Ключевые задачи проекта:
+
+- управление учебным контентом: курсы, модули, уроки, задания, тесты, вопросы;
+- прохождение обучения студентом;
+- отслеживание прогресса по урокам и тестам;
+- расчет результатов по темам;
+- формирование персональных рекомендаций;
+- построение аналитики по темам, тестам, попыткам и вопросам.
 
 Архитектурно проект состоит из трех основных частей:
 
-- `backend/` — FastAPI-приложение, ORM-модели, API, bootstrap-логика и сервисы;
-- `frontend/` — Angular-клиент;
-- `analytics/` — отдельный слой аналитических классов, который используется backend-ом.
+- `backend/` — FastAPI-приложение, ORM-модели, API, DTO, bootstrap и адаптерный слой;
+- `frontend/` — Angular-клиент с маршрутами, страницами и сервисами доступа к API;
+- `analytics/` — слой вычислительных сервисов, который собирает и интерпретирует учебные данные.
 
 ---
 
 ## 2. Backend
 
-### 2.1. Технологический стек и запуск
+## 2.1. Технологии и общая структура
 
 Backend построен на:
 
 - `FastAPI` — HTTP API;
-- `SQLAlchemy 2.x` — ORM и работа с БД;
-- `SQLite` — текущая база данных (`app.db`);
-- JWT-аутентификации — авторизация пользователей.
+- `SQLAlchemy 2.x` — ORM и доступ к данным;
+- `SQLite` — текущая база данных `app.db`;
+- `Pydantic` — схемы входных и выходных DTO;
+- JWT-аутентификации — защита приватных endpoint-ов.
 
-Точка входа backend-а: `backend/main.py`.
+Ключевые backend-модули:
 
-При запуске приложения:
+- `backend/main.py` — точка входа, регистрация роутеров;
+- `backend/models.py` — SQLAlchemy-модели таблиц;
+- `backend/schemas.py` — DTO и схемы API;
+- `backend/bootstrap.py` — инициализация и миграционная логика для локальной БД;
+- `backend/deps.py` — зависимости FastAPI, текущий пользователь, проверка прав;
+- `backend/services/analytics.py` — адаптер между аналитическими сервисами и API;
+- `backend/services/course_access.py` — проверка доступа к курсам и тестам;
+- `backend/attempt_metrics.py` — расчет `percentage`, `is_passed`, `status` для попыток.
 
-1. создаются отсутствующие таблицы через `Base.metadata.create_all(...)`;
-2. выполняется `initialize_database(engine)` из `backend/bootstrap.py`;
-3. для SQLite при необходимости выполняется очистка/перестройка схемы;
-4. синхронизируется демонстрационный вводный контент.
-
-### 2.2. Роли пользователей
+## 2.2. Роли пользователей
 
 Система поддерживает три роли:
 
-- `student` — проходит курсы, уроки и тесты;
-- `teacher` — управляет учебным контентом и доступом студентов;
-- `admin` — обладает теми же возможностями, что и преподаватель, плюс административный доступ.
+- `student` — проходит обучение и видит персональную аналитику;
+- `teacher` — управляет учебным контентом и видит преподавательскую аналитику;
+- `admin` — имеет административный доступ к тем же данным и операциям.
 
-### 2.3. Таблицы и поля
+## 2.3. Таблицы и поля
 
-Ниже перечислены все основные таблицы backend-а в их текущем состоянии.
+Ниже перечислены основные таблицы в актуальной схеме проекта.
 
-#### `users`
+### `users`
 
 Назначение: учетные записи пользователей.
 
@@ -67,7 +75,7 @@ Backend построен на:
 - `course_year`
 - `created_at`
 
-#### `courses`
+### `courses`
 
 Назначение: верхний уровень учебной структуры.
 
@@ -83,9 +91,9 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `course_enrollments`
+### `course_enrollments`
 
-Назначение: факты зачисления студентов на курсы.
+Назначение: факты зачисления пользователей на курсы.
 
 Поля:
 
@@ -97,11 +105,11 @@ Backend построен на:
 
 Особенность:
 
-- уникальность пары `user_id + course_id`.
+- уникальная связка `user_id + course_id`.
 
-#### `modules`
+### `modules`
 
-Назначение: тематические разделы внутри курса.
+Назначение: модули внутри курса.
 
 Поля:
 
@@ -113,9 +121,9 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `lessons`
+### `lessons`
 
-Назначение: теоретический контент модуля.
+Назначение: теоретические материалы модуля.
 
 Поля:
 
@@ -131,12 +139,12 @@ Backend построен на:
 
 Примечание:
 
-- в таблице больше нет поля `content`;
-- в API поле `content` продолжает возвращаться как краткая производная сводка из `content_blocks`.
+- поле `content` удалено из БД;
+- в API краткая текстовая сводка все еще может формироваться из `content_blocks`.
 
-#### `tasks`
+### `tasks`
 
-Назначение: практические задания внутри модуля.
+Назначение: практические задания модуля.
 
 Поля:
 
@@ -149,9 +157,9 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `tests`
+### `tests`
 
-Назначение: тесты по курсу или модулю.
+Назначение: тесты курса или конкретного модуля.
 
 Поля:
 
@@ -167,7 +175,7 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `questions`
+### `questions`
 
 Назначение: вопросы тестов.
 
@@ -183,9 +191,9 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `answer_options`
+### `answer_options`
 
-Назначение: варианты ответов для вопросов тестов.
+Назначение: варианты ответов для вопросов.
 
 Поля:
 
@@ -196,9 +204,9 @@ Backend построен на:
 - `created_at`
 - `updated_at`
 
-#### `test_attempts`
+### `test_attempts`
 
-Назначение: факты прохождения тестов.
+Назначение: факты прохождения тестов пользователями.
 
 Поля:
 
@@ -212,13 +220,12 @@ Backend построен на:
 
 Примечание:
 
-- в таблице больше не хранятся `percentage` и `is_passed`;
-- `percentage` вычисляется как `score / max_score * 100`;
-- `is_passed` вычисляется на основе `tests.passing_score`.
+- поля `percentage` и `is_passed` не хранятся;
+- они вычисляются по данным попытки и `tests.passing_score`.
 
-#### `user_answers`
+### `user_answers`
 
-Назначение: ответы пользователя на вопросы внутри конкретной попытки.
+Назначение: ответы пользователя в рамках конкретной попытки.
 
 Поля:
 
@@ -233,24 +240,20 @@ Backend построен на:
 
 Особенность:
 
-- уникальность пары `attempt_id + question_id`.
+- уникальная связка `attempt_id + question_id`.
 
-#### `user_answer_option_selections`
+### `user_answer_option_selections`
 
-Назначение: связь ответа пользователя с несколькими выбранными вариантами.
+Назначение: связь ответа с несколькими выбранными вариантами.
 
 Поля:
 
 - `user_answer_id`
 - `answer_option_id`
 
-Особенность:
+### `lesson_progress`
 
-- используется для вопросов типа `multiple_choice`.
-
-#### `lesson_progress`
-
-Назначение: факты завершения уроков пользователями.
+Назначение: факты прохождения уроков.
 
 Поля:
 
@@ -262,11 +265,11 @@ Backend построен на:
 
 Особенность:
 
-- уникальность пары `user_id + lesson_id`.
+- уникальная связка `user_id + lesson_id`.
 
-#### `topic_results`
+### `topic_results`
 
-Назначение: легкий кэш результата пользователя по модулю.
+Назначение: легкий кэш результата пользователя по теме.
 
 Поля:
 
@@ -278,12 +281,12 @@ Backend построен на:
 
 Примечание:
 
-- `attempts_count`, `average_percentage`, `best_percentage` и `weakness_level` не хранятся в таблице;
-- они рассчитываются на лету в `TopicResultService`.
+- в таблице не хранятся аналитические метрики темы;
+- `TopicResultService` собирает их на лету из `test_attempts` и `lesson_progress`.
 
-#### `recommendations`
+### `recommendations`
 
-Назначение: контент рекомендаций, привязанный к модулю.
+Назначение: библиотека контента рекомендаций, привязанная к модулям.
 
 Поля:
 
@@ -297,598 +300,883 @@ Backend построен на:
 
 Примечание:
 
-- поле `trigger_score_threshold` удалено из схемы;
-- логика показа рекомендаций реализована в `RecommendationService`.
+- поле `trigger_score_threshold` удалено;
+- логика выбора рекомендаций теперь находится в `RecommendationService`.
 
-### 2.4. Основные backend endpoints
+## 2.4. Backend-модули и endpoint-ы
 
-Ниже перечислены текущие endpoint-ы по группам.
+Ниже перечислены основные backend-роутеры и их назначение.
 
-#### Корневой endpoint
+### `backend/api/auth.py`
 
-- `GET /` — проверка, что API запущен.
+Назначение:
 
-#### Аутентификация: `backend/api/auth.py`
+- регистрация;
+- вход;
+- получение текущего пользователя.
 
-- `POST /api/auth/register/` — регистрация пользователя;
-- `POST /api/auth/login/` — вход и получение JWT;
-- `GET /api/auth/me/` — текущий авторизованный пользователь.
+Endpoint-ы:
 
-#### Курсы: `backend/api/courses.py`
+- `POST /api/auth/register/`
+- `POST /api/auth/login/`
+- `GET /api/auth/me/`
 
-- `GET /api/courses/` — список опубликованных курсов;
-- `GET /api/courses/my/enrollments/` — курсы, на которые записан текущий пользователь;
-- `POST /api/courses/{course_id}/enroll/my/` — самозапись на открытый курс;
-- `GET /api/courses/{course_id}/enrollments/` — список зачисленных на курс студентов;
-- `POST /api/courses/{course_id}/enrollments/` — добавить студента на курс;
-- `GET /api/courses/students/search/` — поиск студентов для назначения на курс;
-- `GET /api/courses/{course_id}/` — карточка курса;
-- `GET /api/courses/{course_id}/modules/` — модули курса;
-- `GET /api/courses/{course_id}/progress/my/` — прогресс по курсу;
-- `GET /api/courses/{course_id}/topic-results/my/` — результаты по темам курса;
-- `GET /api/courses/{course_id}/recommendations/my/` — рекомендации по курсу;
-- `POST /api/courses/` — создать курс;
-- `PATCH /api/courses/{course_id}/` — обновить курс;
-- `DELETE /api/courses/{course_id}/` — удалить курс.
+### `backend/api/courses.py`
 
-#### Модули: `backend/api/modules.py`
+Назначение:
 
-- `GET /api/modules/{module_id}/lessons/` — уроки модуля;
-- `GET /api/modules/{module_id}/tests/` — тесты модуля;
-- `GET /api/modules/{module_id}/` — карточка модуля;
-- `GET /api/modules/{module_id}/progress/my/` — прогресс по модулю;
-- `GET /api/modules/{module_id}/topic-results/my/` — результаты по теме модуля;
-- `GET /api/modules/{module_id}/recommendations/my/` — рекомендации по модулю;
-- `POST /api/modules/` — создать модуль;
-- `PATCH /api/modules/{module_id}/` — обновить модуль;
-- `DELETE /api/modules/{module_id}/` — удалить модуль.
+- работа с курсами;
+- зачисления;
+- курс как точка входа в обучение;
+- доступ к курсовому progress, topic results и рекомендациям.
 
-#### Уроки: `backend/api/lessons.py`
+Endpoint-ы:
 
-- `GET /api/lessons/{lesson_id}/` — получить урок с деталями и признаком завершения;
-- `POST /api/lessons/{lesson_id}/complete/` — отметить урок завершенным;
-- `POST /api/lessons/` — создать урок;
-- `PATCH /api/lessons/{lesson_id}/` — обновить урок;
-- `DELETE /api/lessons/{lesson_id}/` — удалить урок.
+- `GET /api/courses/`
+- `GET /api/courses/my/enrollments/`
+- `POST /api/courses/{course_id}/enroll/my/`
+- `GET /api/courses/{course_id}/enrollments/`
+- `POST /api/courses/{course_id}/enrollments/`
+- `GET /api/courses/students/search/`
+- `GET /api/courses/{course_id}/`
+- `GET /api/courses/{course_id}/modules/`
+- `GET /api/courses/{course_id}/progress/my/`
+- `GET /api/courses/{course_id}/topic-results/my/`
+- `GET /api/courses/{course_id}/recommendations/my/`
+- `POST /api/courses/`
+- `PATCH /api/courses/{course_id}/`
+- `DELETE /api/courses/{course_id}/`
 
-#### Задания: `backend/api/tasks.py`
+### `backend/api/modules.py`
 
-- `GET /api/modules/{module_id}/tasks/` — список заданий модуля;
-- `GET /api/tasks/{task_id}/` — карточка задания;
-- `POST /api/tasks/` — создать задание;
-- `PATCH /api/tasks/{task_id}/` — обновить задание;
-- `DELETE /api/tasks/{task_id}/` — удалить задание.
+Назначение:
 
-#### Рекомендации: `backend/api/recommendations.py`
+- работа с модулями;
+- выдача содержимого модуля: уроки, задания, тесты;
+- доступ к аналитике и рекомендациям в рамках модуля.
 
-- `GET /api/recommendations/my/` — персональные рекомендации текущего пользователя;
-- `GET /api/recommendations/` — список всех рекомендаций для преподавателя/админа;
-- `POST /api/recommendations/` — создать рекомендацию;
-- `GET /api/recommendations/{recommendation_id}/` — получить рекомендацию;
-- `PATCH /api/recommendations/{recommendation_id}/` — обновить рекомендацию;
-- `DELETE /api/recommendations/{recommendation_id}/` — удалить рекомендацию.
+Endpoint-ы:
 
-#### Тесты, попытки, вопросы и варианты ответов: `backend/api/tests.py`
+- `GET /api/modules/{module_id}/`
+- `GET /api/modules/{module_id}/lessons/`
+- `GET /api/modules/{module_id}/tasks/`
+- `GET /api/modules/{module_id}/tests/`
+- `GET /api/modules/{module_id}/progress/my/`
+- `GET /api/modules/{module_id}/topic-results/my/`
+- `GET /api/modules/{module_id}/recommendations/my/`
+- `POST /api/modules/`
+- `PATCH /api/modules/{module_id}/`
+- `DELETE /api/modules/{module_id}/`
 
-Тесты и попытки:
+### `backend/api/lessons.py`
 
-- `GET /api/tests/{test_id}/` — карточка теста;
-- `GET /api/tests/{test_id}/active-attempt/` — активная незавершенная попытка по тесту;
-- `GET /api/tests/{test_id}/analytics/my/` — аналитика по тесту для текущего пользователя;
-- `GET /api/test-attempts/my/unfinished/` — список незавершенных попыток;
-- `GET /api/tests/{test_id}/questions/` — вопросы теста для прохождения;
-- `POST /api/tests/{test_id}/start/` — начать попытку;
-- `POST /api/test-attempts/{attempt_id}/answers/` — сохранить ответ в попытке;
-- `POST /api/test-attempts/{attempt_id}/finish/` — завершить попытку;
-- `GET /api/test-attempts/{attempt_id}/result/` — получить результат завершенной попытки.
+Назначение:
 
-CRUD тестов:
+- создание и редактирование уроков;
+- выдача страницы урока;
+- отметка урока как завершенного.
+
+Endpoint-ы:
+
+- `GET /api/lessons/{lesson_id}/`
+- `POST /api/lessons/{lesson_id}/complete/`
+- `POST /api/lessons/`
+- `PATCH /api/lessons/{lesson_id}/`
+- `DELETE /api/lessons/{lesson_id}/`
+
+### `backend/api/tasks.py`
+
+Назначение:
+
+- CRUD для заданий;
+- выдача карточки задания.
+
+Endpoint-ы:
+
+- `GET /api/tasks/{task_id}/`
+- `POST /api/tasks/`
+- `PATCH /api/tasks/{task_id}/`
+- `DELETE /api/tasks/{task_id}/`
+
+### `backend/api/tests.py`
+
+Назначение:
+
+- CRUD для тестов, вопросов и вариантов ответов;
+- прохождение тестов;
+- сохранение ответов;
+- завершение попыток;
+- выдача test analytics и результата попытки.
+
+Endpoint-ы для тестов и попыток:
+
+- `GET /api/tests/{test_id}/`
+- `GET /api/tests/{test_id}/questions/`
+- `GET /api/tests/{test_id}/active-attempt/`
+- `GET /api/tests/{test_id}/analytics/my/`
+- `GET /api/test-attempts/my/unfinished/`
+- `POST /api/tests/{test_id}/start/`
+- `POST /api/test-attempts/{attempt_id}/answers/`
+- `POST /api/test-attempts/{attempt_id}/finish/`
+- `GET /api/test-attempts/{attempt_id}/result/`
+
+Endpoint-ы для управления тестами:
 
 - `POST /api/tests/`
 - `PATCH /api/tests/{test_id}/`
 - `DELETE /api/tests/{test_id}/`
 
-CRUD вопросов:
+Endpoint-ы для вопросов:
 
 - `POST /api/questions/`
 - `PATCH /api/questions/{question_id}/`
 - `DELETE /api/questions/{question_id}/`
 
-CRUD вариантов ответов:
+Endpoint-ы для вариантов ответов:
 
 - `POST /api/answer-options/`
 - `PATCH /api/answer-options/{option_id}/`
 - `DELETE /api/answer-options/{option_id}/`
 
-#### Аналитика: `backend/api/analytics.py`
+### `backend/api/recommendations.py`
+
+Назначение:
+
+- CRUD рекомендаций;
+- выдача персональных рекомендаций пользователю.
+
+Endpoint-ы:
+
+- `GET /api/recommendations/my/`
+- `GET /api/recommendations/`
+- `GET /api/recommendations/{recommendation_id}/`
+- `POST /api/recommendations/`
+- `PATCH /api/recommendations/{recommendation_id}/`
+- `DELETE /api/recommendations/{recommendation_id}/`
+
+### `backend/api/analytics.py`
+
+Назначение:
+
+- персональная аналитика пользователя;
+- групповые и преподавательские срезы по темам;
+- аналитика по вопросам, тестам и модулям.
 
 Персональная аналитика:
 
-- `GET /api/progress/my/` — общий прогресс по доступным материалам;
-- `GET /api/topic-results/my/` — результаты по темам по всем доступным модулям;
-- `GET /api/analytics/my/snapshot/` — единый аналитический снимок;
-- `GET /api/analytics/my/summary/` — краткая сводка по обучению;
-- `GET /api/analytics/my/weak-topics/` — слабые темы;
-- `GET /api/analytics/my/best-topics/` — сильные темы;
-- `GET /api/analytics/my/dynamics/` — динамика попыток во времени.
+- `GET /api/progress/my/`
+- `GET /api/topic-results/my/`
+- `GET /api/analytics/my/snapshot/`
+- `GET /api/analytics/my/summary/`
+- `GET /api/analytics/my/weak-topics/`
+- `GET /api/analytics/my/best-topics/`
+- `GET /api/analytics/my/dynamics/`
 
-Агрегированная аналитика для преподавателя/админа:
+Агрегаты по преподавательским срезам:
 
-- `GET /api/analytics/groups/{group_id}/topic-results/` — тема по группе;
-- `GET /api/analytics/courses/{course_id}/topic-results/` — тема по курсу;
-- `GET /api/analytics/modules/{module_id}/topic-results/` — тема по модулю.
+- `GET /api/analytics/groups/{group_id}/topic-results/`
+- `GET /api/analytics/courses/{course_id}/topic-results/`
+- `GET /api/analytics/modules/{module_id}/topic-results/`
 
-### 2.5. Внутренние backend-сервисы
+Аналитика по вопросам:
 
-Помимо роутеров, в `backend/services/analytics.py` есть слой адаптации аналитики для API. Он:
+- `GET /api/analytics/questions/{question_id}/`
+- `GET /api/analytics/tests/{test_id}/questions/`
+- `GET /api/analytics/tests/{test_id}/questions/hardest/`
+- `GET /api/analytics/tests/{test_id}/questions/most-missed/`
+- `GET /api/analytics/modules/{module_id}/questions/`
+- `GET /api/analytics/modules/{module_id}/questions/hardest/`
 
-- вызывает классы из `analytics/`;
-- преобразует их payload в DTO из `backend/schemas.py`;
-- собирает сводные ответы для endpoint-ов аналитики, рекомендаций и topic results.
+## 2.5. DTO и схемы ответа
 
-Также в `backend/attempt_metrics.py` вынесены функции для вычисления:
+Основной файл: `backend/schemas.py`.
 
-- процента выполнения попытки;
-- признака прохождения попытки;
-- статуса попытки;
-- SQL-выражения для процента в аналитических запросах.
+Ключевые схемы:
+
+- `UserRead`, `TokenRead` — пользователь и токен;
+- `CourseRead`, `ModuleRead`, `LessonRead`, `TaskRead`, `TestRead` — основные сущности контента;
+- `TestAttemptRead`, `AttemptResultRead`, `UnfinishedAttemptRead` — попытки и их результат;
+- `ProgressRead` — прогресс;
+- `TopicResultRead` — аналитика по теме;
+- `PersonalRecommendationRead` — персональная рекомендация;
+- `TestAttemptAnalyticsItemRead` — расширенный snapshot попытки;
+- `TestAnalyticsRead` — аналитика по тесту;
+- `QuestionWrongOptionRead`, `QuestionAnalyticsRead` — аналитика по вопросу;
+- `PersonalAnalyticsSnapshotRead` — полный персональный snapshot аналитики.
+
+## 2.6. Адаптерный слой backend
+
+Файл: `backend/services/analytics.py`.
+
+Его роль:
+
+- вызывать сервисы из `analytics/`;
+- приводить их словари к DTO;
+- собирать итоговые структуры для API;
+- скрывать внутреннюю логику расчетов от роутеров.
+
+Основные функции слоя:
+
+- сбор progress;
+- сбор topic results;
+- сбор персонального snapshot;
+- сбор рекомендаций;
+- сбор test analytics;
+- сбор question analytics;
+- сбор агрегированных срезов по темам.
 
 ---
 
 ## 3. Frontend
 
-### 3.1. Общая структура
+Frontend расположен в `frontend/src/app` и построен вокруг feature-page компонентов, core-моделей и сервисов доступа к backend API.
 
-Frontend реализован на `Angular`.
+## 3.1. Главные frontend-модули
 
-Главные элементы:
+### `app.routes.ts`
 
-- `frontend/src/app/app.routes.ts` — маршруты приложения;
-- `frontend/src/app/app.html` — общий shell с header, footer и `router-outlet`;
-- `frontend/src/app/core/services/` — сервисы работы с API;
-- `frontend/src/app/core/models/` — интерфейсы DTO;
-- `frontend/src/app/features/` — страницы приложения.
+Назначение:
 
-### 3.2. Основная навигация
+- задает маршруты всего приложения;
+- связывает URL со страницами.
 
-В шапке приложения:
+Основные маршруты:
 
-- гость видит ссылки на главную, вход и регистрацию;
-- авторизованный пользователь видит ссылки на:
-  - главную;
-  - курсы;
-  - аналитику;
-  - рекомендации;
-  - незавершенные попытки;
-  - профиль.
+- `/`
+- `/dashboard`
+- `/login`
+- `/register`
+- `/courses`
+- `/courses/:courseId`
+- `/courses/:courseId/manage`
+- `/modules/:moduleId`
+- `/lessons/:lessonId`
+- `/tasks/:taskId`
+- `/tests/:testId`
+- `/tests/:testId/attempt/:attemptId`
+- `/tests/:testId/attempt/:attemptId/result`
+- `/recommendations`
+- `/analytics`
+- `/attempts`
+- `/profile`
 
-### 3.3. Страницы и их назначение
+### `core/models`
 
-#### `/` и `/dashboard` — `DashboardPageComponent`
+Назначение:
 
-Где используется:
+- содержит TypeScript-интерфейсы для backend DTO;
+- разделяет дашбордные и учебные модели.
 
-- главная страница для гостя;
-- главная рабочая сводка для авторизованного пользователя.
+Основные файлы:
+
+- `dashboard.models.ts`
+- `learning.models.ts`
+
+### `core/services`
+
+Назначение:
+
+- централизованный доступ к backend API;
+- инкапсуляция HTTP-запросов.
+
+Основные сервисы:
+
+- `AuthService` — вход, регистрация, текущий пользователь;
+- `CourseService` — каталог курсов;
+- `LearningService` — уроки, задания, тесты, попытки, test analytics;
+- `RecommendationService` — загрузка рекомендаций в разных scope;
+- `AnalyticsService` — персональный analytics snapshot;
+- `DashboardService` — агрегированная загрузка данных для главной панели.
+
+## 3.2. Страницы frontend
+
+Ниже перечислены основные страницы, их маршрут, содержимое и место использования в пользовательском пути.
+
+### `LoginPageComponent`
+
+Маршрут:
+
+- `/login`
 
 Содержимое:
 
-- для гостя — landing screen с описанием платформы и переходами к входу/регистрации;
-- для авторизованного пользователя — краткая сводка по обучению.
-
-Что показывает:
-
-- общий прогресс;
-- число доступных курсов;
-- число завершенных уроков;
-- средний результат тестов;
-- количество рекомендаций;
-- короткие инсайты по попыткам и курсам.
-
-#### `/login` — `LoginPageComponent`
+- форма авторизации;
+- поля логина и пароля;
+- обработка ошибок входа.
 
 Где используется:
 
-- точка входа для уже зарегистрированного пользователя.
+- стартовая точка для неавторизованного пользователя;
+- переход в защищенную часть приложения.
 
-Содержимое:
+### `RegisterPageComponent`
 
-- форма входа по `username` и `password`.
+Маршрут:
 
-#### `/register` — `RegisterPageComponent`
-
-Где используется:
-
-- точка регистрации нового пользователя.
+- `/register`
 
 Содержимое:
 
 - форма регистрации;
-- базовые поля профиля студента;
-- выбор курса обучения (`course_year`).
-
-#### `/courses` — `CoursesPageComponent`
+- базовые поля профиля пользователя;
+- создание новой учетной записи.
 
 Где используется:
 
-- основная точка входа в каталог курсов;
-- переход сюда идет из верхнего меню.
+- путь входа в систему для новых пользователей.
+
+### `DashboardPageComponent`
+
+Маршрут:
+
+- `/dashboard`
 
 Содержимое:
 
-- список опубликованных курсов;
-- карточки с названием, описанием, сложностью и статусом доступа;
-- кнопки старта/продолжения курса;
-- для преподавателя и администратора — переход в управление доступом к закрытому курсу.
-
-#### `/courses/:courseId` — `CoursePageComponent`
+- прогресс;
+- summary;
+- блок курсов;
+- блок рекомендаций.
 
 Где используется:
 
-- открывается из каталога курсов.
+- главная страница после входа;
+- быстрый обзор текущего состояния обучения.
+
+### `CoursesPageComponent`
+
+Маршрут:
+
+- `/courses`
+
+Содержимое:
+
+- каталог доступных курсов;
+- карточки курсов;
+- ссылки на курс.
+
+Где используется:
+
+- отправная точка учебного маршрута;
+- выбор курса для продолжения обучения.
+
+### `CoursePageComponent`
+
+Маршрут:
+
+- `/courses/:courseId`
 
 Содержимое:
 
 - карточка курса;
 - список модулей;
-- прогресс по курсу;
-- результаты по темам внутри курса;
-- персональные рекомендации по курсу.
-
-#### `/courses/:courseId/manage` — `CourseAccessPageComponent`
+- progress по курсу;
+- topic results по всем модулям курса;
+- рекомендации в рамках курса.
 
 Где используется:
 
-- доступна преподавателю и администратору из карточки закрытого курса.
+- страница курса после выбора из каталога;
+- переход дальше в конкретный модуль.
+
+### `CourseAccessPageComponent`
+
+Маршрут:
+
+- `/courses/:courseId/manage`
 
 Содержимое:
 
-- информация о курсе;
-- текущие зачисления;
-- поиск студентов;
-- добавление студента на курс.
-
-#### `/modules/:moduleId` — `ModulePageComponent`
+- управление доступом студентов к курсу;
+- список зачисленных;
+- поиск и добавление пользователей.
 
 Где используется:
 
-- открывается из страницы курса.
+- преподавательский и административный сценарий управления курсом.
+
+### `ModulePageComponent`
+
+Маршрут:
+
+- `/modules/:moduleId`
 
 Содержимое:
 
-- карточка модуля;
+- информация о модуле;
 - список уроков;
 - список заданий;
 - список тестов;
-- прогресс по модулю;
-- topic result по модулю;
+- progress;
+- аналитика темы;
 - рекомендации по модулю.
 
-#### `/lessons/:lessonId` — `LessonPageComponent`
-
 Где используется:
 
-- открывается из страницы модуля.
+- основная учебная страница внутри курса;
+- переход в урок, задание или тест.
+
+### `LessonPageComponent`
+
+Маршрут:
+
+- `/lessons/:lessonId`
 
 Содержимое:
 
-- название урока;
-- краткая сводка;
-- `content_blocks` с поддержкой нескольких типов блоков;
+- блоки контента урока;
 - видео и внешние ссылки;
-- кнопка завершения урока;
+- статус завершения;
 - переход к следующему уроку.
 
-#### `/tasks/:taskId` — `TaskPageComponent`
-
 Где используется:
 
-- открывается из страницы модуля.
+- теоретический этап изучения модуля.
+
+### `TaskPageComponent`
+
+Маршрут:
+
+- `/tasks/:taskId`
 
 Содержимое:
 
-- заголовок задания;
+- название задания;
 - описание;
 - максимальный балл;
-- порядок задания внутри модуля.
-
-Это информационная карточка задания, без отдельного интерфейса сдачи.
-
-#### `/tests/:testId` — `TestPageComponent`
+- контекст модуля.
 
 Где используется:
 
-- открывается из страницы модуля.
+- практическая часть модуля.
+
+### `TestPageComponent`
+
+Маршрут:
+
+- `/tests/:testId`
 
 Содержимое:
 
 - карточка теста;
-- описание;
-- лимит времени;
-- проходной процент;
-- число доступных попыток;
-- информация об активной попытке;
-- кнопка старта теста;
-- переход к списку незавершенных попыток.
-
-#### `/tests/:testId/attempt/:attemptId` — `TestAttemptPageComponent`
+- параметры теста;
+- кнопка старта или продолжения попытки;
+- расширенная аналитика по тесту:
+  - число попыток;
+  - завершенные и незавершенные попытки;
+  - первая и последняя завершенные попытки;
+  - тренд;
+  - прирост;
+  - серия неудач;
+  - insight по тесту.
 
 Где используется:
 
-- открывается после старта теста или возврата к незавершенной попытке.
+- точка входа в прохождение теста;
+- предварительный обзор прогресса по конкретному тесту.
+
+### `TestAttemptPageComponent`
+
+Маршрут:
+
+- `/tests/:testId/attempt/:attemptId`
 
 Содержимое:
 
-- интерфейс прохождения теста;
-- текущий вопрос;
-- навигация между вопросами;
-- автосохранение ответов;
-- таймер при наличии ограничения;
-- завершение попытки с переходом на страницу результата.
-
-#### `/tests/:testId/attempt/:attemptId/result` — `TestAttemptResultPageComponent`
+- вопросы теста;
+- выбор ответов;
+- сохранение прогресса по попытке;
+- завершение теста.
 
 Где используется:
 
-- открывается после завершения тестовой попытки.
+- основной экран прохождения теста.
+
+### `TestAttemptResultPageComponent`
+
+Маршрут:
+
+- `/tests/:testId/attempt/:attemptId/result`
 
 Содержимое:
 
-- итог попытки;
-- статус прохождения;
-- набранные баллы;
-- процент результата;
-- длительность попытки;
-- разбор ответов по каждому вопросу;
-- кнопка перехода к рекомендациям.
-
-#### `/recommendations` — `RecommendationsPageComponent`
+- итоговый балл;
+- рассчитанный процент;
+- признак прохождения;
+- детализация по вопросам и ответам.
 
 Где используется:
 
-- отдельная страница рекомендаций из верхнего меню;
-- также сюда можно перейти со страницы результата теста.
+- финальный экран после завершения попытки.
+
+### `RecommendationsPageComponent`
+
+Маршрут:
+
+- `/recommendations`
 
 Содержимое:
 
 - список персональных рекомендаций;
-- фильтр по всему набору данных, по курсу или по модулю;
-- модуль, текущий результат, приоритет и текстовое объяснение причины показа рекомендации.
-
-#### `/analytics` — `AnalyticsPageComponent`
+- фильтрация по всем курсам, по курсу или по модулю;
+- причина рекомендации;
+- приоритет;
+- rule key;
+- текущее состояние темы;
+- текущий результат;
+- прогресс по теме;
+- доля завершения теории.
 
 Где используется:
 
-- отдельная аналитическая страница из верхнего меню.
+- персональная страница поддержки обучения;
+- быстрый способ понять, что повторять дальше.
+
+### `AnalyticsPageComponent`
+
+Маршрут:
+
+- `/analytics`
 
 Содержимое:
 
-- общий снимок аналитики пользователя;
-- summary-метрики;
-- график динамики результатов;
-- слабые темы;
-- сильные темы;
-- полная таблица результатов по темам.
-
-#### `/attempts` — `UnfinishedAttemptsPageComponent`
+- общий progress и summary;
+- график динамики попыток;
+- таблицы слабых и сильных тем;
+- полная таблица topic results;
+- дополнительные категории:
+  - `unstableTopics`
+  - `improvingTopics`
+  - `topicsWithoutEnoughData`
 
 Где используется:
 
-- отдельная страница из верхнего меню;
-- дополнительная точка возврата к незавершенным тестам.
+- персональная страница аналитики;
+- сводный обзор траектории обучения.
+
+### `UnfinishedAttemptsPageComponent`
+
+Маршрут:
+
+- `/attempts`
 
 Содержимое:
 
 - список незавершенных попыток;
 - курс и модуль;
 - время последней активности;
-- число отвеченных вопросов;
-- лимит времени;
-- ссылка на продолжение попытки.
-
-#### `/profile` — `ProfilePageComponent`
+- прогресс по отвеченным вопросам.
 
 Где используется:
 
-- личный кабинет пользователя из верхнего меню.
+- возврат к незавершенным тестам;
+- контроль зависших попыток.
+
+### `ProfilePageComponent`
+
+Маршрут:
+
+- `/profile`
 
 Содержимое:
 
-- ФИО;
-- username;
-- email;
-- университет;
-- группа;
-- курс обучения;
-- дата создания аккаунта;
+- персональные данные;
+- учебные атрибуты;
 - роль;
-- кнопка выхода.
+- дата создания аккаунта.
 
-### 3.4. Как страницы связаны между собой
+Где используется:
 
-Типовой пользовательский маршрут выглядит так:
-
-1. пользователь входит в систему;
-2. открывает `/courses`;
-3. выбирает `/courses/:courseId`;
-4. переходит в `/modules/:moduleId`;
-5. открывает урок `/lessons/:lessonId`, задание `/tasks/:taskId` или тест `/tests/:testId`;
-6. при прохождении теста переходит на `/tests/:testId/attempt/:attemptId`;
-7. после завершения получает `/tests/:testId/attempt/:attemptId/result`;
-8. затем может открыть `/recommendations` и `/analytics`.
+- личный кабинет пользователя.
 
 ---
 
 ## 4. Analytics
 
-Пакет `analytics/` содержит все основные аналитические классы проекта.
+Папка `analytics/` содержит все аналитические классы проекта. Каждый класс отвечает за свой уровень вычислений: прогресс, тема, рекомендации, тест, вопрос или пользовательская сводка.
 
-### 4.1. `ProgressService`
+## 4.1. `ProgressService`
 
-Файл: `analytics/progress_service.py`
+Файл:
 
-Назначение:
-
-- считает прогресс пользователя по всем доступным материалам;
-- умеет работать в трех скоупах: глобально, по курсу, по модулю.
-
-Основные методы:
-
-- `get_accessible_course_ids(user_id)` — определяет курсы, доступные пользователю с учетом роли и зачислений;
-- `get_overall_progress(user_id)` — общий прогресс;
-- `get_course_progress(user_id, course_id)` — прогресс по курсу;
-- `get_module_progress(user_id, module_id)` — прогресс по модулю;
-- `get_completed_lessons_percentage(...)` — процент завершенных уроков;
-- `get_completed_modules_percentage(...)` — процент полностью завершенных модулей;
-- `get_modules_for_scope(...)` — список модулей для указанного скоупа;
-- `get_scope_lesson_ids(...)` — ID уроков для скоупа;
-- `get_scope_test_ids(...)` — ID тестов для скоупа;
-- `_build_progress(...)` — собирает итоговый `ProgressRead`.
-
-На чем основаны расчеты:
-
-- `course_enrollments`;
-- `lesson_progress`;
-- `test_attempts`;
-- `tests.passing_score`.
-
-### 4.2. `TopicResultService`
-
-Файл: `analytics/topic_result_service.py`
+- `analytics/progress_service.py`
 
 Назначение:
 
-- строит результаты пользователя по модулям;
-- использует `topic_results` только как легкий кэш времени последней попытки и идентичности строки;
-- считает все метрики напрямую из `test_attempts`.
+- рассчитывает прогресс пользователя по доступному контенту;
+- работает только по фактам из БД;
+- умеет считать progress глобально, по курсу и по модулю.
+
+Что делает класс:
+
+- определяет, какие курсы доступны пользователю;
+- собирает модули для нужного scope;
+- считает завершенные уроки;
+- считает пройденные тесты;
+- считает средний процент по тестам;
+- формирует итоговый `ProgressRead`.
 
 Основные методы:
 
-- `update_topic_result_after_attempt(user_id, module_id)` — обновляет кэш после завершения попытки;
-- `get_or_create_topic_result(user_id, module_id)` — возвращает или создает строку `topic_results`;
-- `calculate_weakness_level(average_percentage, attempts_count)` — определяет уровень слабости темы;
-- `get_user_topic_results(user_id)` — результаты по всем доступным модулям;
-- `get_course_topic_results(user_id, course_id)` — результаты в рамках курса;
-- `get_module_topic_results(user_id, module_id)` — результаты по одному модулю;
-- `_get_scope_topic_results(...)` — общая логика выборки для разных скоупов;
-- `_build_topic_result_payload(user_id, module)` — собирает payload по модулю;
-- `_calculate_topic_result_values(user_id, module_id)` — считает число попыток, средний и лучший результат, слабость и дату последней попытки;
-- `_serialize_topic_result(...)` — готовит итоговый словарь для DTO.
+- `get_accessible_course_ids(...)`
+- `get_modules_for_scope(...)`
+- `get_scope_lesson_ids(...)`
+- `get_scope_test_ids(...)`
+- `get_overall_progress(...)`
+- `get_course_progress(...)`
+- `get_module_progress(...)`
+- `_build_progress(...)`
 
-### 4.3. `WeakTopicDetector`
+## 4.2. `TopicResultService`
 
-Файл: `analytics/topic_result_service.py`
+Файл:
+
+- `analytics/topic_result_service.py`
 
 Назначение:
 
-- работает поверх `TopicResultService`;
-- делит темы на слабые, сильные и промежуточные;
-- формирует текстовые объяснения для аналитики и рекомендаций.
+- строит результат пользователя по теме, где тема эквивалентна модулю;
+- рассчитывает все метрики по попыткам тестов и прогрессу по урокам;
+- использует `topic_results` только как минимальный кэш строки и времени последней попытки.
+
+Что делает класс:
+
+- получает все попытки по тестам модуля;
+- отделяет завершенные попытки;
+- считает средний, лучший, первый и последний результат;
+- считает тренд, стабильность и прирост;
+- считает долю завершения уроков;
+- определяет состояние темы: слабость, риск, learning state и reason code;
+- сериализует результат в payload, который потом использует backend API.
 
 Основные методы:
 
-- `get_weak_topics(...)` — возвращает слабые темы;
-- `get_strong_topics(...)` — возвращает сильные темы;
-- `sort_topics_by_problem_severity(topics)` — сортировка слабых тем;
-- `sort_topics_by_success(topics)` — сортировка сильных тем;
-- `determine_weak_topic_reason(topic_result)` — объяснение, почему тема считается слабой;
-- `determine_strong_topic_reason(topic_result)` — объяснение, почему тема считается сильной;
-- `prepare_analytics_data(...)` — полный набор данных для аналитической страницы;
-- `prepare_recommendation_data(...)` — подготовка темы к дальнейшему правилу рекомендаций;
-- `_is_weak_topic(...)` — признак слабой темы;
-- `_is_strong_topic(...)` — признак сильной темы;
-- `_attach_weak_reason(...)`, `_attach_strong_reason(...)`, `_attach_analytics_reason(...)` — добавляют объяснения в payload.
+- `update_topic_result_after_attempt(...)`
+- `get_or_create_topic_result(...)`
+- `get_user_topic_results(...)`
+- `get_course_topic_results(...)`
+- `get_module_topic_results(...)`
+- `_calculate_topic_result_values(...)`
+- `_calculate_progress_trend(...)`
+- `_calculate_stability_index(...)`
+- `_get_module_lesson_completion_ratio(...)`
+- `calculate_topic_state(...)`
+- `_serialize_topic_result(...)`
 
-### 4.4. `RecommendationService`
+## 4.3. `WeakTopicDetector`
 
-Файл: `analytics/recommendation_service.py`
+Файл:
+
+- `analytics/topic_result_service.py`
+
+Назначение:
+
+- интерпретирует результат темы;
+- выделяет слабые, сильные, нестабильные и улучшающиеся темы;
+- формирует текстовые причины и аналитические теги.
+
+Что делает класс:
+
+- проверяет критерии слабой темы;
+- проверяет критерии сильной темы;
+- выделяет темы с нехваткой данных;
+- строит списки для analytics snapshot;
+- добавляет category, reason и tags к payload темы;
+- подготавливает данные для recommendation engine.
+
+Основные методы:
+
+- `get_weak_topics(...)`
+- `get_strong_topics(...)`
+- `get_unstable_topics(...)`
+- `get_improving_topics(...)`
+- `get_topics_without_enough_data(...)`
+- `determine_weak_topic_reason(...)`
+- `determine_strong_topic_reason(...)`
+- `build_topic_tags(...)`
+- `prepare_analytics_data(...)`
+- `prepare_recommendation_data(...)`
+
+## 4.4. `RecommendationService`
+
+Файл:
+
+- `analytics/recommendation_service.py`
 
 Назначение:
 
 - выбирает, какие рекомендации показывать пользователю;
-- использует контент из таблицы `recommendations`;
-- применяет к нему backend-правила, а не пороги из БД.
+- берет контент рекомендаций из БД;
+- применяет rule-based логику на основе аналитики темы.
 
-Текущие rule-based сценарии:
+Что делает класс:
 
-- низкий средний результат по модулю;
-- несколько неуспешных попыток;
-- незавершенные уроки в модуле.
+- получает topic results из `WeakTopicDetector`;
+- собирает расширенный контекст темы;
+- считает неуспешные попытки и failure streak;
+- сопоставляет тему с rule key;
+- определяет priority;
+- формирует краткое и конкретное reason explanation;
+- готовит frontend payload рекомендации.
 
 Основные методы:
 
-- `get_personal_recommendations(user_id)` — рекомендации по всем доступным модулям;
-- `get_course_recommendations(user_id, course_id)` — рекомендации по курсу;
-- `get_module_recommendations(user_id, module_id)` — рекомендации по модулю;
-- `match_topic_results_with_recommendations(...)` — сопоставляет тему, контекст и рекомендации;
-- `determine_priority(context, rule_key)` — приоритет рекомендации;
-- `build_reason_explanation(context, rule_key)` — текстовое объяснение;
-- `to_frontend_payload(recommendation, context, rule_key)` — payload для frontend;
-- `_build_contexts(user_id, topic_results)` — собирает расширенный контекст по каждой теме;
-- `_get_failed_attempt_metrics(user_id, module_ids)` — число неудачных попыток и длина серии неудач;
-- `_get_unfinished_lessons_count(user_id, module_ids)` — число незавершенных уроков;
-- `_get_matching_rules(context)` — определяет, какие правила сработали;
-- `_get_recommendation_entities(module_ids)` — получает контент рекомендаций из БД;
-- `_recommendation_sort_key(item)` — сортировка выдачи.
+- `get_personal_recommendations(...)`
+- `get_course_recommendations(...)`
+- `get_module_recommendations(...)`
+- `match_topic_results_with_recommendations(...)`
+- `determine_priority(...)`
+- `build_reason_explanation(...)`
+- `to_frontend_payload(...)`
+- `_build_contexts(...)`
+- `_get_failed_attempt_metrics(...)`
+- `_get_unfinished_lessons_count(...)`
+- `_get_matching_rules(...)`
+- `_get_recommendation_entities(...)`
 
-### 4.5. `TestAnalyticsService`
+Поддерживаемые rule key:
 
-Файл: `analytics/test_analytics_service.py`
+- `low_average_score`
+- `no_progress_after_retries`
+- `unfinished_theory`
+- `high_failure_streak`
+- `unstable_mastery`
+- `improving_but_not_mastered`
+
+## 4.5. `TestAnalyticsService`
+
+Файл:
+
+- `analytics/test_analytics_service.py`
 
 Назначение:
 
-- строит аналитику по одному тесту и всем попыткам пользователя по нему.
+- строит расширенную аналитику по одному тесту;
+- анализирует историю попыток пользователя;
+- формирует итоговый инсайт по тесту.
+
+Что делает класс:
+
+- получает все попытки по тесту;
+- считает завершенные и незавершенные попытки;
+- считает средний, лучший, первый и последний результат;
+- считает прогресс, лучший прирост и failure streak;
+- определяет общий тренд теста;
+- формирует insight;
+- собирает расширенные snapshot-ы попыток.
 
 Основные методы:
 
-- `get_test_attempts(user_id, test_id, include_unfinished=True)` — получает попытки по тесту;
-- `calculate_completion_percentage(attempt)` — вычисляет процент выполнения;
-- `calculate_attempts_count(attempts)` — число попыток;
-- `calculate_best_result(attempts)` — лучший результат;
-- `calculate_average_result(attempts)` — средний результат;
-- `calculate_last_result(attempts)` — последний результат;
-- `calculate_time_spent_seconds(attempt)` — время прохождения;
-- `calculate_status(attempt)` — статус попытки;
-- `build_attempt_snapshot(attempt)` — snapshot одной попытки;
-- `build_test_analytics(user_id, test_id)` — итоговый payload для `TestAnalyticsRead`.
+- `get_test_attempts(...)`
+- `calculate_completion_percentage(...)`
+- `calculate_best_result(...)`
+- `calculate_average_result(...)`
+- `calculate_first_result(...)`
+- `calculate_last_result(...)`
+- `calculate_progress_delta(...)`
+- `calculate_best_improvement(...)`
+- `calculate_unfinished_attempts_count(...)`
+- `calculate_failure_streak(...)`
+- `calculate_test_trend(...)`
+- `build_test_insight(...)`
+- `calculate_time_spent_seconds(...)`
+- `calculate_answered_questions_count(...)`
+- `calculate_status(...)`
+- `build_attempt_snapshot(...)`
+- `build_test_analytics(...)`
 
-### 4.6. `StudentSummaryService`
+## 4.6. `QuestionAnalyticsService`
 
-Файл: `analytics/student_summary.py`
+Файл:
+
+- `analytics/question_analytics_service.py`
 
 Назначение:
 
-- собирает сводную аналитику по пользователю;
-- формирует summary и динамику результатов;
-- используется в общей аналитической странице.
+- строит аналитику по отдельным вопросам;
+- показывает сложные вопросы, часто ошибочные варианты и средний успех;
+- умеет работать как на уровне одного вопроса, так и на уровне теста или модуля.
+
+Что делает класс:
+
+- собирает ответы пользователей по вопросу;
+- считает success rate;
+- считает средний балл по вопросу;
+- определяет самые частые неверные варианты;
+- строит snapshot по вопросу;
+- собирает аналитические срезы по тесту;
+- собирает аналитические срезы по модулю.
 
 Основные методы:
 
-- `get_summary(user_id)` — общая сводка: попытки, пройденные тесты, средние результаты, завершенные уроки, число начатых курсов;
-- `get_dynamics(user_id)` — временной ряд завершенных тестовых попыток;
-- `build_analytics_snapshot(user_id)` — объединенный аналитический снимок пользователя.
+- `get_question_attempts(...)`
+- `calculate_question_success_rate(...)`
+- `calculate_question_average_score(...)`
+- `get_common_wrong_options(...)`
+- `build_question_snapshot(...)`
+- `get_test_question_analytics(...)`
+- `get_hardest_questions_for_test(...)`
+- `get_most_missed_questions_for_test(...)`
+- `get_module_question_analytics(...)`
+- `get_hardest_questions_for_module(...)`
 
-### 4.7. Как аналитика интегрирована в backend
+## 4.7. `StudentSummaryService`
 
-Backend использует эти классы через функции из `backend/services/analytics.py`.
+Файл:
 
-Этот слой:
+- `analytics/student_summary.py`
 
-- вызывает аналитические сервисы;
-- собирает DTO из `backend/schemas.py`;
-- подготавливает данные для endpoint-ов:
-  - прогресса;
-  - snapshot-а;
-  - weak/best topics;
-  - рекомендаций;
-  - агрегированной аналитики по группе, курсу и модулю.
+Назначение:
+
+- собирает персональную общую сводку пользователя;
+- объединяет progress, topic analytics и dynamics в единый snapshot.
+
+Что делает класс:
+
+- считает число всех попыток;
+- считает число завершенных и успешных попыток;
+- считает средний балл и средний процент;
+- считает число завершенных уроков;
+- считает число начатых курсов;
+- собирает временной ряд завершенных попыток;
+- строит персональный analytics snapshot.
+
+Основные методы:
+
+- `get_summary(...)`
+- `get_dynamics(...)`
+- `build_analytics_snapshot(...)`
+
+## 4.8. Интеграция аналитики с backend
+
+Файл:
+
+- `backend/services/analytics.py`
+
+Роль слоя:
+
+- вызывать аналитические классы;
+- приводить результаты к Pydantic DTO;
+- отдавать данные роутерам в готовом виде.
+
+Через этот слой в API попадают:
+
+- progress;
+- topic results;
+- weak/best topic выборки;
+- recommendations;
+- test analytics;
+- question analytics;
+- персональный analytics snapshot;
+- агрегаты по темам для преподавателей.
 
 ---
 
 ## 5. Итоговая картина проекта
 
-В текущем состоянии проект — это полноценная учебная веб-платформа, где:
+В текущем состоянии проект — это учебная система, в которой:
 
-- backend хранит пользователей, учебный контент, попытки и факты прогресса;
-- frontend дает единый пользовательский маршрут от каталога курсов до аналитики и рекомендаций;
-- аналитический слой считает все ключевые учебные метрики на лету из фактических данных, без лишней денормализации в БД.
+- backend хранит пользователей, контент и факты обучения;
+- frontend проводит пользователя по маршруту от курса до аналитики;
+- аналитический слой строит прогресс, тему, тест, вопрос, рекомендации и общий snapshot напрямую из реальных данных;
+- документация, API и клиентская часть опираются на одну и ту же актуальную схему проекта.

@@ -4,7 +4,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { TestAttempt, TestItem } from '../../core/models/learning.models';
+import { TestAnalytics, TestAttempt, TestItem } from '../../core/models/learning.models';
 import { LearningService } from '../../core/services/learning.service';
 
 @Component({
@@ -24,6 +24,7 @@ export class TestPageComponent implements OnInit {
   readonly attemptsExhausted = signal(false);
   readonly test = signal<TestItem | null>(null);
   readonly activeAttempt = signal<TestAttempt | null>(null);
+  readonly analytics = signal<TestAnalytics | null>(null);
   readonly testId = computed(() => Number(this.route.snapshot.paramMap.get('testId')));
   readonly startButtonLabel = computed(() =>
     this.activeAttempt() ? 'Продолжить попытку' : 'Начать тест'
@@ -86,11 +87,13 @@ export class TestPageComponent implements OnInit {
 
     forkJoin({
       test: this.learningService.getTest(testId),
-      activeAttempt: this.learningService.getActiveTestAttempt(testId).pipe(catchError(() => of(null)))
+      activeAttempt: this.learningService.getActiveTestAttempt(testId).pipe(catchError(() => of(null))),
+      analytics: this.learningService.getTestAnalytics(testId).pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ test, activeAttempt }) => {
+      next: ({ test, activeAttempt, analytics }) => {
         this.test.set(test);
         this.activeAttempt.set(activeAttempt);
+        this.analytics.set(analytics);
         this.isLoading.set(false);
       },
       error: (error: HttpErrorResponse) => {

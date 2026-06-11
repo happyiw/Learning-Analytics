@@ -27,11 +27,15 @@ export interface PersonalRecommendation {
   description: string;
   resource_url: string | null;
   current_percentage: number;
+  current_result: number;
   weakness_level: string;
+  topic_state?: string | null;
   rule_key?: string | null;
   priority?: string | null;
   reason?: string | null;
   topic_reason?: string | null;
+  progress_delta: number;
+  completed_lessons_ratio: number;
 }
 
 export interface CourseCard {
@@ -60,11 +64,24 @@ export interface TopicResult {
   attempts_count: number;
   average_percentage: number;
   best_percentage: number;
+  last_percentage: number;
+  first_percentage: number;
+  progress_delta: number;
+  trend: string;
+  stability_index: number | null;
+  completed_lessons_ratio: number;
+  completed_attempts_count: number;
+  passed_attempts_count: number;
+  failed_attempts_count: number;
   weakness_level: string;
+  risk_level: string | null;
+  learning_state: string | null;
+  reason_code: string | null;
   last_attempt_at: string | null;
   updated_at: string | null;
   reason?: string | null;
   category?: string | null;
+  tags: string[];
 }
 
 export interface AnalyticsDynamicsPoint {
@@ -83,6 +100,10 @@ export interface PersonalAnalyticsSnapshot {
   summary: AnalyticsSummary;
   topicResults: TopicResult[];
   weakTopics: TopicResult[];
+  strongTopics: TopicResult[];
   bestTopics: TopicResult[];
+  unstableTopics: TopicResult[];
+  improvingTopics: TopicResult[];
+  topicsWithoutEnoughData: TopicResult[];
   dynamics: AnalyticsDynamicsPoint[];
 }

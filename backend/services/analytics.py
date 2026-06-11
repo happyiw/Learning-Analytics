@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from analytics import (
     ProgressService,
+    QuestionAnalyticsService,
     RecommendationService,
     StudentSummaryService,
     TestAnalyticsService,
@@ -25,6 +26,7 @@ from backend.schemas import (
     PersonalAnalyticsSnapshotRead,
     PersonalRecommendationRead,
     ProgressRead,
+    QuestionAnalyticsRead,
     TestAnalyticsRead,
     TopicResultAggregateRead,
     TopicResultRead,
@@ -73,7 +75,19 @@ def compute_topic_result_row(
             attempts_count=0,
             average_percentage=0.0,
             best_percentage=0.0,
-            weakness_level="not_enough_data",
+            last_percentage=0.0,
+            first_percentage=0.0,
+            progress_delta=0.0,
+            trend="not_enough_data",
+            stability_index=None,
+            completed_lessons_ratio=0.0,
+            completed_attempts_count=0,
+            passed_attempts_count=0,
+            failed_attempts_count=0,
+            weakness_level="none",
+            risk_level="medium",
+            learning_state="not_enough_data",
+            reason_code="no_progress",
             last_attempt_at=None,
             updated_at=None,
         )
@@ -86,13 +100,12 @@ def compute_topic_results(
     course_id: int | None = None,
     module_id: int | None = None,
 ) -> list[TopicResultRead]:
-    service = TopicResultService(db)
-    if module_id is not None:
-        payload = service.get_module_topic_results(user_id, module_id)
-    elif course_id is not None:
-        payload = service.get_course_topic_results(user_id, course_id)
-    else:
-        payload = service.get_user_topic_results(user_id)
+    detector = WeakTopicDetector(db)
+    payload = detector.prepare_analytics_data(
+        user_id,
+        course_id=course_id,
+        module_id=module_id,
+    )["topic_results"]
     return [TopicResultRead(**item) for item in payload]
 
 
@@ -136,7 +149,11 @@ def build_personal_analytics_snapshot(db: Session, user_id: int) -> PersonalAnal
         summary=UserAnalyticsSummaryRead(**payload["summary"]),
         topicResults=[TopicResultRead(**item) for item in payload["topicResults"]],
         weakTopics=[TopicResultRead(**item) for item in payload["weakTopics"]],
+        strongTopics=[TopicResultRead(**item) for item in payload["strongTopics"]],
         bestTopics=[TopicResultRead(**item) for item in payload["bestTopics"]],
+        unstableTopics=[TopicResultRead(**item) for item in payload["unstableTopics"]],
+        improvingTopics=[TopicResultRead(**item) for item in payload["improvingTopics"]],
+        topicsWithoutEnoughData=[TopicResultRead(**item) for item in payload["topicsWithoutEnoughData"]],
         dynamics=[AnalyticsDynamicsPointRead(**item) for item in payload["dynamics"]],
     )
 
@@ -183,6 +200,57 @@ def build_personal_recommendations(
     else:
         payload = service.get_personal_recommendations(user_id)
     return [PersonalRecommendationRead(**item) for item in payload]
+
+
+def build_question_snapshot(
+    db: Session,
+    question_id: int,
+    user_id: int | None = None,
+) -> QuestionAnalyticsRead:
+    payload = QuestionAnalyticsService(db).build_question_snapshot(question_id, user_id=user_id)
+    return QuestionAnalyticsRead(**payload)
+
+
+def build_test_question_analytics(
+    db: Session,
+    test_id: int,
+    user_id: int | None = None,
+) -> list[QuestionAnalyticsRead]:
+    payload = QuestionAnalyticsService(db).get_test_question_analytics(test_id, user_id=user_id)
+    return [QuestionAnalyticsRead(**item) for item in payload]
+
+
+def build_hardest_questions_for_test(
+    db: Session,
+    test_id: int,
+) -> list[QuestionAnalyticsRead]:
+    payload = QuestionAnalyticsService(db).get_hardest_questions_for_test(test_id)
+    return [QuestionAnalyticsRead(**item) for item in payload]
+
+
+def build_most_missed_questions_for_test(
+    db: Session,
+    test_id: int,
+) -> list[QuestionAnalyticsRead]:
+    payload = QuestionAnalyticsService(db).get_most_missed_questions_for_test(test_id)
+    return [QuestionAnalyticsRead(**item) for item in payload]
+
+
+def build_module_question_analytics(
+    db: Session,
+    module_id: int,
+    user_id: int | None = None,
+) -> list[QuestionAnalyticsRead]:
+    payload = QuestionAnalyticsService(db).get_module_question_analytics(module_id, user_id=user_id)
+    return [QuestionAnalyticsRead(**item) for item in payload]
+
+
+def build_hardest_questions_for_module(
+    db: Session,
+    module_id: int,
+) -> list[QuestionAnalyticsRead]:
+    payload = QuestionAnalyticsService(db).get_hardest_questions_for_module(module_id)
+    return [QuestionAnalyticsRead(**item) for item in payload]
 
 
 def build_topic_result_aggregates(

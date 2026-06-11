@@ -120,6 +120,61 @@ export interface TestAttempt {
   is_passed: boolean;
 }
 
+export interface TestAttemptAnalyticsItem {
+  attempt_id: number;
+  started_at: string;
+  finished_at: string | null;
+  completion_percentage: number;
+  percentage: number;
+  is_passed: boolean;
+  time_spent_seconds: number | null;
+  duration_seconds: number | null;
+  answered_questions_count: number;
+  status: string;
+}
+
+export interface TestAnalytics {
+  test_id: number;
+  attempts_count: number;
+  completed_attempts_count: number;
+  unfinished_attempts_count: number;
+  completion_percentage: number;
+  best_result: number;
+  average_result: number;
+  first_result: number;
+  last_result: number;
+  progress_delta: number;
+  best_improvement: number;
+  failure_streak: number;
+  overall_trend: string;
+  insight: string | null;
+  time_spent_seconds: number | null;
+  status: string;
+  attempts: TestAttemptAnalyticsItem[];
+}
+
+export interface QuestionWrongOption {
+  option_id: number;
+  option_text: string;
+  selections_count: number;
+}
+
+export interface QuestionAnalytics {
+  question_id: number;
+  test_id: number;
+  module_id: number | null;
+  question_text: string;
+  question_type: QuestionType;
+  order: number;
+  max_score: number;
+  attempts_count: number;
+  correct_answers_count: number;
+  incorrect_answers_count: number;
+  success_rate: number;
+  average_score: number;
+  common_wrong_options: QuestionWrongOption[];
+}
+
 export interface UserAnswer {
   id: number;
   attempt_id: number;

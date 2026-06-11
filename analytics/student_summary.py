@@ -103,6 +103,10 @@ class StudentSummaryService:
             "summary": self.get_summary(user_id),
             "topicResults": analytics_data["topic_results"],
             "weakTopics": analytics_data["weak_topics"],
+            "strongTopics": analytics_data["strong_topics"],
             "bestTopics": analytics_data["best_topics"],
+            "unstableTopics": analytics_data["unstable_topics"],
+            "improvingTopics": analytics_data["improving_topics"],
+            "topicsWithoutEnoughData": analytics_data["topics_without_enough_data"],
             "dynamics": self.get_dynamics(user_id),
         }

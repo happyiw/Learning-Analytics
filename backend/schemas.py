@@ -357,7 +357,11 @@ class TestAttemptAnalyticsItemRead(BaseModel):
     started_at: datetime
     finished_at: datetime | None = None
     completion_percentage: float
+    percentage: float = 0.0
+    is_passed: bool = False
     time_spent_seconds: int | None = None
+    duration_seconds: int | None = None
+    answered_questions_count: int = 0
     status: str
 
 
@@ -365,10 +369,17 @@ class TestAnalyticsRead(BaseModel):
     test_id: int
     attempts_count: int
     completed_attempts_count: int
+    unfinished_attempts_count: int = 0
     completion_percentage: float
     best_result: float
     average_result: float
+    first_result: float = 0.0
     last_result: float
+    progress_delta: float = 0.0
+    best_improvement: float = 0.0
+    failure_streak: int = 0
+    overall_trend: str = "not_enough_data"
+    insight: str | None = None
     time_spent_seconds: int | None = None
     status: str
     attempts: list[TestAttemptAnalyticsItemRead] = Field(default_factory=list)
@@ -431,11 +442,24 @@ class TopicResultRead(BaseModel):
     attempts_count: int
     average_percentage: float
     best_percentage: float
+    last_percentage: float = 0.0
+    first_percentage: float = 0.0
+    progress_delta: float = 0.0
+    trend: str = "not_enough_data"
+    stability_index: float | None = None
+    completed_lessons_ratio: float = 0.0
+    completed_attempts_count: int = 0
+    passed_attempts_count: int = 0
+    failed_attempts_count: int = 0
     weakness_level: str
+    risk_level: str | None = None
+    learning_state: str | None = None
+    reason_code: str | None = None
     last_attempt_at: datetime | None = None
     updated_at: datetime | None = None
     reason: str | None = None
     category: str | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 class TopicResultAggregateRead(BaseModel):
@@ -480,11 +504,15 @@ class PersonalRecommendationRead(BaseModel):
     description: str
     resource_url: str | None = None
     current_percentage: float
+    current_result: float = 0.0
     weakness_level: str
+    topic_state: str | None = None
     rule_key: str | None = None
     priority: str | None = None
     reason: str | None = None
     topic_reason: str | None = None
+    progress_delta: float = 0.0
+    completed_lessons_ratio: float = 0.0
 
 
 class UserAnalyticsSummaryRead(BaseModel):
@@ -508,12 +536,38 @@ class AnalyticsDynamicsPointRead(BaseModel):
     is_passed: bool
 
 
+class QuestionWrongOptionRead(BaseModel):
+    option_id: int
+    option_text: str
+    selections_count: int
+
+
+class QuestionAnalyticsRead(BaseModel):
+    question_id: int
+    test_id: int
+    module_id: int | None = None
+    question_text: str
+    question_type: QuestionType
+    order: int
+    max_score: float
+    attempts_count: int
+    correct_answers_count: int
+    incorrect_answers_count: int
+    success_rate: float
+    average_score: float
+    common_wrong_options: list[QuestionWrongOptionRead] = Field(default_factory=list)
+
+
 class PersonalAnalyticsSnapshotRead(BaseModel):
     progress: ProgressRead
     summary: UserAnalyticsSummaryRead
     topicResults: list[TopicResultRead] = Field(default_factory=list)
     weakTopics: list[TopicResultRead] = Field(default_factory=list)
+    strongTopics: list[TopicResultRead] = Field(default_factory=list)
     bestTopics: list[TopicResultRead] = Field(default_factory=list)
+    unstableTopics: list[TopicResultRead] = Field(default_factory=list)
+    improvingTopics: list[TopicResultRead] = Field(default_factory=list)
+    topicsWithoutEnoughData: list[TopicResultRead] = Field(default_factory=list)
     dynamics: list[AnalyticsDynamicsPointRead] = Field(default_factory=list)
 
 
