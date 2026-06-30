@@ -2,43 +2,43 @@
   {
     "id": 1,
     "test_id": 1,
-    "text": "Что наиболее точно описывает Интернет вещей?",
+    "text": "Что наиболее точно описывает Интернет вещей в логике пособия?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 1
   },
   {
     "id": 2,
     "test_id": 1,
-    "text": "Какой компонент IoT обычно собирает данные о состоянии среды?",
+    "text": "Что в IoT может считаться «вещью»?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 2
   },
   {
     "id": 3,
     "test_id": 1,
-    "text": "Что делает исполнительный механизм в IoT-системе?",
+    "text": "Какие две функции названы базовыми для функционирования IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 3
   },
   {
     "id": 4,
     "test_id": 1,
-    "text": "Какой пример относится к области применения IoT в медицине?",
+    "text": "Какая технология в книге рассматривается как основной способ идентификации объекта?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 4
   },
   {
     "id": 5,
     "test_id": 1,
-    "text": "Чем IIoT отличается от бытового IoT?",
+    "text": "Какая пара элементов обеспечивает взаимодействие IoT-объекта с внешней средой?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -47,16 +47,16 @@
   {
     "id": 6,
     "test_id": 1,
-    "text": "Какой элемент помогает связывать IoT-устройства между собой и с облаком?",
+    "text": "Для чего в IoT нужен уровень интеллектуального принятия решений?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 6
   },
   {
     "id": 7,
     "test_id": 1,
-    "text": "Почему совместимость устройств является проблемой IoT?",
+    "text": "Какая из перечисленных сфер прямо относится к типичным областям применения IoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -65,7 +65,7 @@
   {
     "id": 8,
     "test_id": 1,
-    "text": "Какой пример лучше всего отражает идею интеллектуального принятия решений в IoT?",
+    "text": "Чем индустриальный Интернет вещей отличается от бытового IoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -74,7 +74,7 @@
   {
     "id": 9,
     "test_id": 1,
-    "text": "Какая технология может использоваться для идентификации объектов в IoT?",
+    "text": "Какой технологический подход интегрирует вычислительные ресурсы в физические процессы?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -83,7 +83,7 @@
   {
     "id": 10,
     "test_id": 1,
-    "text": "Какая проблема развития IoT связана с личной информацией пользователей?",
+    "text": "Что относится к числу системных проблем развития IIoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -92,16 +92,16 @@
   {
     "id": 11,
     "test_id": 2,
-    "text": "Что относится к умышленным действиям в классификации угроз IoT?",
+    "text": "Что особенно осложняет обеспечение безопасности в IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 1
   },
   {
     "id": 12,
     "test_id": 2,
-    "text": "Что такое DDoS-атака?",
+    "text": "Какие три опасные зоны выделяются в IoT-криминалистике?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -110,7 +110,7 @@
   {
     "id": 13,
     "test_id": 2,
-    "text": "К какой группе относится атака «человек посередине»?",
+    "text": "Как в книге определяется вредоносное ПО в контексте IoT-угроз?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -119,16 +119,16 @@
   {
     "id": 14,
     "test_id": 2,
-    "text": "Какая причина часто делает IoT-устройства уязвимыми?",
+    "text": "Какова цель эксплойта?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 4
   },
   {
     "id": 15,
     "test_id": 2,
-    "text": "Что означает скомпрометированное устройство?",
+    "text": "Что наиболее точно описывает DDoS-атаку?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -137,7 +137,7 @@
   {
     "id": 16,
     "test_id": 2,
-    "text": "Почему IIoT особенно чувствителен к инцидентам безопасности?",
+    "text": "Почему скомпрометированное устройство опасно для IoT-среды?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -146,7 +146,7 @@
   {
     "id": 17,
     "test_id": 2,
-    "text": "Что относится к проблемам безопасности IIoT?",
+    "text": "Что относится к угрозам отказа или выхода из строя элементов IIoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -155,7 +155,7 @@
   {
     "id": 18,
     "test_id": 2,
-    "text": "Что такое brute-force атака?",
+    "text": "Какой класс угроз IIoT включает DoS, вредоносное ПО и манипулирование информацией?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -164,16 +164,16 @@
   {
     "id": 19,
     "test_id": 2,
-    "text": "Какой пример относится к физической атаке?",
+    "text": "Почему безопасность IIoT требует повышенного внимания по сравнению с бытовым IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 9
   },
   {
     "id": 20,
     "test_id": 2,
-    "text": "Что является примером манипулирования информацией?",
+    "text": "К чему в IIoT приводят слабые пароли по умолчанию и отсутствие обновлений?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -182,7 +182,7 @@
   {
     "id": 21,
     "test_id": 3,
-    "text": "Почему умные часы могут быть важны для цифровой экспертизы?",
+    "text": "Какие каналы связи используются смарт-часами для соединения со смартфоном и сетью?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -191,25 +191,25 @@
   {
     "id": 22,
     "test_id": 3,
-    "text": "Какой тип данных умных часов относится к чувствительной информации?",
+    "text": "Что делает смарт-часы значимым источником цифровых доказательств?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 2
   },
   {
     "id": 23,
     "test_id": 3,
-    "text": "Какая задача интеллектуальной транспортной системы является одной из основных?",
+    "text": "Какова общая задача интеллектуальных транспортных систем?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 3
   },
   {
     "id": 24,
     "test_id": 3,
-    "text": "Что может быть последствием подделки данных о плотности трафика?",
+    "text": "Какой пример относится к базовым системам ITS, упомянутым в книге?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -218,7 +218,7 @@
   {
     "id": 25,
     "test_id": 3,
-    "text": "Что является источником цифровых доказательств в IoT-среде?",
+    "text": "Почему извлечение доказательств из облака в IoT-расследовании осложнено?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -227,7 +227,7 @@
   {
     "id": 26,
     "test_id": 3,
-    "text": "Какую проблему создает сбор данных при IoT-криминалистике?",
+    "text": "На что в методологии цифровой экспертизы обращают особое внимание помимо извлечения данных?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -236,7 +236,7 @@
   {
     "id": 27,
     "test_id": 3,
-    "text": "Какая атака связана с изменением пороговых значений датчика?",
+    "text": "Чем опасна атака на соединение между контроллером и исполнительным механизмом?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -245,7 +245,7 @@
   {
     "id": 28,
     "test_id": 3,
-    "text": "Для чего злоумышленник может использовать ботнет IoT?",
+    "text": "Что делает атака на датчики особенно критичной?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -254,25 +254,25 @@
   {
     "id": 29,
     "test_id": 3,
-    "text": "Что означает атака на систему администрирования IoT?",
+    "text": "Чем известен ботнет Mirai в контексте IoT-угроз?",
     "question_type": "single_choice",
-    "difficulty_level": "hard",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 9
   },
   {
     "id": 30,
     "test_id": 3,
-    "text": "Почему повтор сообщений может быть опасен для IoT?",
+    "text": "Что означает ступенчатая атака на IoT-среду?",
     "question_type": "single_choice",
-    "difficulty_level": "hard",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 10
   },
   {
     "id": 31,
     "test_id": 4,
-    "text": "Что означает подход security by design?",
+    "text": "Какая проблема названа одной из ключевых при обеспечении безопасности IoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -281,25 +281,25 @@
   {
     "id": 32,
     "test_id": 4,
-    "text": "Какая мера относится к организационным?",
+    "text": "Какой человеческий фактор прямо выделен в книге как проблема безопасности IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 2
   },
   {
     "id": 33,
     "test_id": 4,
-    "text": "Какая мера относится к техническим?",
+    "text": "Что означает небезопасное проектирование и разработка в контексте IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 3
   },
   {
     "id": 34,
     "test_id": 4,
-    "text": "Зачем IoT-устройствам нужен механизм безопасного обновления?",
+    "text": "Почему управление жизненным циклом продукта важно для IoT-безопасности?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -308,7 +308,7 @@
   {
     "id": 35,
     "test_id": 4,
-    "text": "Как сегментация сети помогает защищать IoT?",
+    "text": "Что включает направление «управление информационной безопасностью и рисками»?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -317,16 +317,16 @@
   {
     "id": 36,
     "test_id": 4,
-    "text": "Что снижает риск brute-force атак?",
+    "text": "За что отвечает управление идентификацией и доступом?",
     "question_type": "single_choice",
-    "difficulty_level": "easy",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 6
   },
   {
     "id": 37,
     "test_id": 4,
-    "text": "Что должно происходить при выводе IoT-устройства из эксплуатации?",
+    "text": "Что относится к архитектурным мерам безопасности IoT?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -335,7 +335,7 @@
   {
     "id": 38,
     "test_id": 4,
-    "text": "Почему обучение персонала важно для защиты IIoT?",
+    "text": "Каким должно быть безопасное обновление программного обеспечения IoT-устройства?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -344,7 +344,7 @@
   {
     "id": 39,
     "test_id": 4,
-    "text": "Что помогает обнаруживать подозрительные действия IoT-устройств?",
+    "text": "Какой принцип безопасности по умолчанию сформулирован в книге?",
     "question_type": "single_choice",
     "difficulty_level": "medium",
     "score": 1.0,
@@ -353,9 +353,9 @@
   {
     "id": 40,
     "test_id": 4,
-    "text": "Какой набор мер наиболее полно соответствует защите IoT-системы?",
+    "text": "Какое требование относится к защите персональных данных в IoT?",
     "question_type": "single_choice",
-    "difficulty_level": "hard",
+    "difficulty_level": "medium",
     "score": 1.0,
     "order": 10
   }

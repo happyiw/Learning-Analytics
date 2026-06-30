@@ -13,6 +13,7 @@ import { ModulePageComponent } from './features/module/module-page.component';
 import { ProfilePageComponent } from './features/profile/profile-page.component';
 import { RecommendationsPageComponent } from './features/recommendations/recommendations-page.component';
 import { TaskPageComponent } from './features/task/task-page.component';
+import { TeacherPageComponent } from './features/teacher/teacher-page.component';
 import { TestAttemptPageComponent } from './features/test-attempt/test-attempt-page.component';
 import { TestAttemptResultPageComponent } from './features/test-attempt-result/test-attempt-result-page.component';
 import { TestPageComponent } from './features/test/test-page.component';
@@ -83,6 +84,11 @@ export const routes: Routes = [
   {
     path: 'analytics',
     component: AnalyticsPageComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'teacher',
+    component: TeacherPageComponent,
     canActivate: [authGuard]
   },
   {

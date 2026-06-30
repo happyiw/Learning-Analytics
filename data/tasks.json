@@ -2,64 +2,64 @@
   {
     "id": 1,
     "module_id": 1,
-    "title": "Map an IoT Ecosystem",
-    "description": "Describe a hypothetical smart classroom IoT system: devices, sensors, actuators, communication channel, cloud service, and user interactions.",
-    "max_score": 5.0,
+    "title": "Построить карту IoT-экосистемы",
+    "description": "Составьте схему IoT-экосистемы для умного дома или банка: выделите вещи, датчики, исполнительные механизмы, каналы связи, облачные сервисы и уровень принятия решений. Для каждого элемента опишите его роль и возможный риск безопасности.",
+    "max_score": 10.0,
     "order": 1
   },
   {
     "id": 2,
     "module_id": 1,
-    "title": "Identify an IoT Domain",
-    "description": "For several real-world examples, determine the IoT application area and the value the system provides.",
-    "max_score": 5.0,
+    "title": "Сравнить IoT и IIoT",
+    "description": "Подготовьте короткую аналитическую записку, в которой сравните бытовой IoT и индустриальный IIoT по целям, критичности отказов, требованиям к совместимости и последствиям инцидентов безопасности.",
+    "max_score": 10.0,
     "order": 2
   },
   {
     "id": 3,
     "module_id": 2,
-    "title": "Classify IoT Threats",
-    "description": "Group a set of IoT threats by type and briefly explain the likely consequence of each one.",
-    "max_score": 7.0,
+    "title": "Классифицировать угрозы IoT",
+    "description": "Возьмите три актива IoT-системы: устройство, сеть и облачную платформу. Для каждого актива перечислите не менее трёх характерных угроз из книги и укажите, на что именно они влияют: конфиденциальность, целостность, доступность или управляемость.",
+    "max_score": 10.0,
     "order": 1
   },
   {
     "id": 4,
     "module_id": 2,
-    "title": "Analyze an IIoT Risk",
-    "description": "A production sensor reports incorrect temperature values. Describe the possible threat, impact, and baseline mitigation steps.",
-    "max_score": 8.0,
+    "title": "Разобрать риск IIoT-среды",
+    "description": "Опишите гипотетический инцидент в промышленной IoT-среде: как он возникает, какие классы угроз в нём задействованы и почему типовые средства обновления или администрирования оказываются недостаточными.",
+    "max_score": 10.0,
     "order": 2
   },
   {
     "id": 5,
     "module_id": 3,
-    "title": "Investigate a Smart Watch Incident",
-    "description": "Explain which categories of data may be recovered from a smart watch or paired smartphone during a forensic investigation.",
-    "max_score": 8.0,
+    "title": "Разобрать кейс с умными часами",
+    "description": "Опишите, какие цифровые следы можно получить со смарт-часов, через какие каналы они формируются и какие ограничения накладывает зависимость от конкретной модели и платформы при проведении форензики.",
+    "max_score": 10.0,
     "order": 1
   },
   {
     "id": 6,
     "module_id": 3,
-    "title": "Assess an Attack on Transport Control",
-    "description": "A traffic control system receives forged density data. Determine the threat type, consequences, and detection options.",
+    "title": "Смоделировать атаку на IoT-среду",
+    "description": "Выберите один из сценариев из книги: атака на датчики, на канал связи, на исполнительный механизм или ботнет DDoS. Распишите этапы атаки, потенциальные последствия и минимальный набор защитных мер.",
     "max_score": 10.0,
     "order": 2
   },
   {
     "id": 7,
     "module_id": 4,
-    "title": "Design IoT Protection Measures",
-    "description": "Propose at least five organizational and technical controls for a smart office system and explain which risks they reduce.",
+    "title": "Сформировать политику безопасности IoT",
+    "description": "Подготовьте компактную политику безопасности для IoT-сервиса: опишите управление рисками, роли участников, требования к обновлениям, защите персональных данных и порядку реагирования на инциденты.",
     "max_score": 10.0,
     "order": 1
   },
   {
     "id": 8,
     "module_id": 4,
-    "title": "Describe a Secure IoT Lifecycle",
-    "description": "List the stages of an IoT device lifecycle and note the main security actions required at each stage.",
+    "title": "Спроектировать технические меры защиты",
+    "description": "Для выбранного IoT-устройства предложите набор технических мер: аппаратная защита, безопасная загрузка, управление доступом, журналирование, обновления, изоляция компонентов и механизм восстановления после инцидента.",
     "max_score": 10.0,
     "order": 2
   }

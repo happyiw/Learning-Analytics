@@ -1,33 +1,28 @@
 {
-  "dataset_name": "iot_security_demo_seed_data",
+  "dataset_name": "learning_analytics_demo_seed",
   "language": "ru",
-  "source_basis": "Учебные материалы по безопасности IoT, адаптированные для демонстрационного прототипа.",
-  "intended_backend": "FastAPI + SQLAlchemy prototype described in BackendUpdates.md",
+  "source_basis": "Демонстрационный набор данных для чистого запуска проекта на PostgreSQL. Курс и контрольные материалы согласованы с учебным пособием «Проблемы безопасности Интернета вещей».",
+  "intended_backend": "FastAPI + SQLAlchemy + PostgreSQL",
   "import_order": [
     "users.json",
     "courses.json",
+    "course_enrollments.json",
     "modules.json",
     "lessons.json",
+    "lesson_progress.json",
     "tasks.json",
     "tests.json",
     "questions.json",
     "answer_options.json",
-    "recommendations.json"
+    "recommendations.json",
+    "test_attempts.json",
+    "user_answers.json",
+    "user_answer_option_selections.json",
+    "topic_results.json"
   ],
-  "counts": {
-    "users": 54,
-    "courses": 1,
-    "modules": 4,
-    "lessons": 16,
-    "tasks": 8,
-    "tests": 4,
-    "questions": 40,
-    "answer_options": 160,
-    "recommendations": 8
-  },
   "notes": [
-    "Пароли в users.json хранятся в открытом виде только для демонстрационного импорта и должны хешироваться при загрузке.",
-    "tasks.json теперь содержит только публичные поля задания: title, description, max_score и order.",
-    "recommendations.json хранит только контент рекомендации; правила показа задаются в RecommendationService."
+    "Если нужно перенести реальные данные из legacy SQLite, используйте MIGRATE_SQLITE_PATH и команду python -m backend.migrate_legacy_sqlite.",
+    "Для пользователей из users.json можно указывать поле password: при импорте оно автоматически преобразуется в password_hash.",
+    "Для lessons.json допускается legacy-поле content: оно автоматически преобразуется в content_blocks при инициализации."
   ]
 }

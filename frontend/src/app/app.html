@@ -26,6 +26,11 @@
           <a class="site-nav__action" routerLink="/analytics" routerLinkActive="site-nav__action--active">
             Посмотреть аналитику
           </a>
+          @if (authService.currentUser()?.role === 'teacher' || authService.currentUser()?.role === 'admin') {
+            <a class="site-nav__action" routerLink="/teacher" routerLinkActive="site-nav__action--active">
+              Панель преподавателя
+            </a>
+          }
           <a class="site-nav__action" routerLink="/recommendations" routerLinkActive="site-nav__action--active">
             Открыть рекомендации
           </a>

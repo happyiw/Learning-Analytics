@@ -1,0 +1,300 @@
+<section class="teacher-page">
+  <article class="teacher-hero">
+    <div>
+      <span class="teacher-hero__badge">Панель преподавателя</span>
+      <h1>Аналитика по курсу, группам и отдельным обучающимся.</h1>
+      <p>
+        Здесь собрана сводка по активности студентов, слабым темам и персональным рекомендациям
+        для выбранного обучающегося.
+      </p>
+    </div>
+
+    <label class="teacher-course-picker">
+      <span>Курс</span>
+      <select
+        [ngModel]="selectedCourseId()"
+        (ngModelChange)="selectCourse($event)"
+        [disabled]="isLoadingCourses() || !courses().length"
+      >
+        @for (course of courses(); track course.id) {
+          <option [ngValue]="course.id">{{ course.title }}</option>
+        }
+      </select>
+    </label>
+  </article>
+
+  @if (errorMessage()) {
+    <div class="page-state page-state--error" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoadingCourses() || isLoadingDashboard()) {
+    <div class="page-state">Загрузка преподавательской сводки...</div>
+  } @else if (dashboard(); as data) {
+    <section class="teacher-summary-grid">
+      <article class="summary-card">
+        <span>Студенты</span>
+        <strong>{{ data.summary.enrolled_students_count }}</strong>
+        <p>Зачислено на выбранный курс.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Группы</span>
+        <strong>{{ data.summary.groups_count }}</strong>
+        <p>Отдельных учебных групп в потоке.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Активные</span>
+        <strong>{{ data.summary.active_students_count }}</strong>
+        <p>Студенты, у которых есть прогресс или попытки.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Средний прогресс</span>
+        <strong>{{ data.summary.average_completion_rate | number: '1.0-0' }}%</strong>
+        <p>По урокам и пройденным тестам курса.</p>
+      </article>
+
+      <article class="summary-card">
+        <span>Средний результат тестов</span>
+        <strong>{{ data.summary.average_test_percentage | number: '1.0-0' }}%</strong>
+        <p>Среднее значение по завершённым попыткам.</p>
+      </article>
+
+      <article class="summary-card summary-card--warn">
+        <span>Студенты риска</span>
+        <strong>{{ data.summary.at_risk_students_count }}</strong>
+        <p>Есть слабые темы или высокий риск по модулю.</p>
+      </article>
+    </section>
+
+    <section class="teacher-layout">
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <div>
+            <span>Группы</span>
+            <strong>Срез по потоку</strong>
+          </div>
+          <p>{{ data.groups.length }} групп</p>
+        </div>
+
+        <div class="group-grid">
+          @for (group of data.groups; track trackByGroupId($index, group)) {
+            <button
+              type="button"
+              class="group-card"
+              [class.group-card--active]="selectedGroupId() === group.group_id"
+              (click)="selectGroup(group.group_id)"
+            >
+              <div class="group-card__top">
+                <strong>{{ group.group_id }}</strong>
+                <span>{{ group.students_count }} студентов</span>
+              </div>
+              <div class="group-card__stats">
+                <span>Прогресс: {{ group.average_completion_rate | number: '1.0-0' }}%</span>
+                <span>Тесты: {{ group.average_test_percentage | number: '1.0-0' }}%</span>
+                <span>Риск: {{ group.at_risk_students_count }}</span>
+                <span>Низкая активность: {{ group.low_activity_students_count }}</span>
+              </div>
+            </button>
+          }
+        </div>
+
+        <div class="panel-card__subheader">
+          <div>
+            <span>Модульная аналитика</span>
+            <strong>
+              {{ selectedGroup()?.group_id || 'Весь курс' }}
+            </strong>
+          </div>
+          @if (isLoadingGroup()) {
+            <p>Пересчитываем...</p>
+          }
+        </div>
+
+        <div class="module-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Модуль</th>
+                <th>Студенты</th>
+                <th>Попытки</th>
+                <th>Средний</th>
+                <th>Лучший</th>
+                <th>Высокий риск</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of displayedGroupResults(); track trackByModuleId($index, item)) {
+                <tr>
+                  <td>{{ item.module_title }}</td>
+                  <td>{{ item.users_count }}</td>
+                  <td>{{ item.attempts_count }}</td>
+                  <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.best_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ item.high_weakness_count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-card__header">
+          <div>
+            <span>Студенты</span>
+            <strong>Индивидуальная аналитика</strong>
+          </div>
+          <p>{{ data.students.length }} записей</p>
+        </div>
+
+        <div class="student-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Студент</th>
+                <th>Группа</th>
+                <th>Прогресс</th>
+                <th>Тесты</th>
+                <th>Риск</th>
+                <th>Активность</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (student of data.students; track trackByStudentId($index, student)) {
+                <tr
+                  class="student-row"
+                  [class.student-row--active]="selectedStudentId() === student.id"
+                  (click)="selectStudent(student.id)"
+                >
+                  <td>
+                    <strong>{{ fullName(student) }}</strong>
+                    <span>{{ student.username }}</span>
+                  </td>
+                  <td>{{ student.group || 'Без группы' }}</td>
+                  <td>{{ student.completion_rate | number: '1.0-0' }}%</td>
+                  <td>{{ student.average_test_percentage | number: '1.0-0' }}%</td>
+                  <td>{{ student.high_risk_topics_count }} / {{ student.weak_topics_count }}</td>
+                  <td>{{ student.last_activity_at ? (student.last_activity_at | date: 'dd.MM.yyyy') : 'Нет' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (studentErrorMessage()) {
+          <div class="page-state page-state--error" role="alert">
+            {{ studentErrorMessage() }}
+          </div>
+        }
+
+        @if (isLoadingStudent()) {
+          <div class="panel-empty">Загрузка аналитики по студенту...</div>
+        } @else if (selectedStudent(); as student) {
+          <section class="student-detail">
+            <div class="student-detail__header">
+              <div>
+                <span>Выбранный студент</span>
+                <strong>{{ fullName(student) }}</strong>
+              </div>
+              <p>{{ student.group || 'Без группы' }}</p>
+            </div>
+
+            <div class="student-metrics">
+              <article>
+                <span>Уроки</span>
+                <strong>{{ student.completed_lessons }} / {{ student.total_lessons }}</strong>
+              </article>
+              <article>
+                <span>Тесты</span>
+                <strong>{{ student.passed_tests }} / {{ student.total_tests }}</strong>
+              </article>
+              <article>
+                <span>Попытки</span>
+                <strong>{{ student.attempts_count }}</strong>
+              </article>
+              <article>
+                <span>Недостаточно данных</span>
+                <strong>{{ student.unfinished_topics_count }}</strong>
+              </article>
+            </div>
+
+            @if (selectedStudentSnapshot(); as snapshot) {
+              <div class="student-topics">
+                <div class="student-topics__header">
+                  <span>Темы студента</span>
+                  <strong>Слабые и сильные зоны</strong>
+                </div>
+
+                <div class="topic-columns">
+                  <article>
+                    <h3>Слабые темы</h3>
+                    @if (snapshot.weakTopics.length) {
+                      <ul>
+                        @for (item of snapshot.weakTopics; track item.module_id) {
+                          <li>
+                            <strong>{{ item.module_title }}</strong>
+                            <span>{{ item.average_percentage | number: '1.0-0' }}%</span>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p>Слабые темы не выявлены.</p>
+                    }
+                  </article>
+
+                  <article>
+                    <h3>Улучшающиеся темы</h3>
+                    @if (snapshot.improvingTopics.length) {
+                      <ul>
+                        @for (item of snapshot.improvingTopics; track item.module_id) {
+                          <li>
+                            <strong>{{ item.module_title }}</strong>
+                            <span>Δ {{ item.progress_delta | number: '1.0-0' }} п.п.</span>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p>Выраженной положительной динамики пока нет.</p>
+                    }
+                  </article>
+                </div>
+              </div>
+            }
+
+            <div class="student-topics">
+              <div class="student-topics__header">
+                <span>Рекомендации</span>
+                <strong>Что предложить студенту дальше</strong>
+              </div>
+
+              @if (selectedStudentRecommendations().length) {
+                <div class="recommendation-list">
+                  @for (recommendation of selectedStudentRecommendations(); track trackByRecommendationId($index, recommendation)) {
+                    <article class="recommendation-card">
+                      <div class="recommendation-card__head">
+                        <strong>{{ recommendation.title }}</strong>
+                        <span>{{ recommendation.priority || 'info' }}</span>
+                      </div>
+                      <p>{{ recommendation.description }}</p>
+                      <small>{{ recommendation.reason || recommendation.topic_reason }}</small>
+                    </article>
+                  }
+                </div>
+              } @else {
+                <div class="panel-empty">Для выбранного студента нет персональных рекомендаций.</div>
+              }
+            </div>
+          </section>
+        } @else {
+          <div class="panel-empty">Выберите студента, чтобы посмотреть подробную аналитику.</div>
+        }
+      </article>
+    </section>
+  } @else {
+    <div class="page-state">Для преподавательской панели пока нет доступных курсов.</div>
+  }
+</section>

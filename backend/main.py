@@ -11,6 +11,7 @@ from backend.api.lessons import router as lessons_router
 from backend.api.modules import router as modules_router
 from backend.api.recommendations import router as recommendations_router
 from backend.api.tasks import router as tasks_router
+from backend.api.teacher import router as teacher_router
 from backend.api.tests import router as tests_router
 from backend.bootstrap import initialize_database
 from backend.core.config import settings
@@ -34,6 +35,7 @@ app.include_router(tasks_router)
 app.include_router(tests_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
+app.include_router(teacher_router)
 
 
 @app.get("/")

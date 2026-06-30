@@ -14,6 +14,7 @@ from backend.lesson_content import (
 )
 from backend.enums import QuestionType
 from backend.models import AnswerOption, Course, Lesson, Question, Test
+from backend.seed import bootstrap_database_if_empty
 from backend.schemas import LessonContentBlock, LessonStatItem
 
 
@@ -22,7 +23,7 @@ def initialize_database(engine: Engine) -> None:
         run_sqlite_migrations(engine)
 
     with SessionLocal() as db:
-        sync_intro_course_content(db)
+        bootstrap_database_if_empty(db)
 
 
 def run_sqlite_migrations(engine: Engine) -> None:

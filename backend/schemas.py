@@ -474,6 +474,54 @@ class TopicResultAggregateRead(BaseModel):
     low_weakness_count: int
 
 
+class TeacherCourseSummaryRead(BaseModel):
+    enrolled_students_count: int
+    groups_count: int
+    active_students_count: int
+    average_completion_rate: float
+    average_test_percentage: float
+    at_risk_students_count: int
+
+
+class TeacherGroupSummaryRead(BaseModel):
+    group_id: str
+    students_count: int
+    average_completion_rate: float
+    average_test_percentage: float
+    average_completed_lessons: float
+    average_passed_tests: float
+    at_risk_students_count: int
+    low_activity_students_count: int
+
+
+class TeacherStudentSummaryRead(BaseModel):
+    id: int
+    username: str
+    first_name: str | None = None
+    last_name: str | None = None
+    group: str | None = None
+    course_year: int | None = Field(default=None, ge=1, le=6)
+    completion_rate: float
+    average_test_percentage: float
+    completed_lessons: int
+    total_lessons: int
+    passed_tests: int
+    total_tests: int
+    attempts_count: int
+    weak_topics_count: int
+    high_risk_topics_count: int
+    unfinished_topics_count: int
+    last_activity_at: datetime | None = None
+
+
+class TeacherCourseDashboardRead(BaseModel):
+    course: CourseRead
+    summary: TeacherCourseSummaryRead
+    groups: list[TeacherGroupSummaryRead] = Field(default_factory=list)
+    students: list[TeacherStudentSummaryRead] = Field(default_factory=list)
+    module_topic_results: list[TopicResultAggregateRead] = Field(default_factory=list)
+
+
 class RecommendationCreate(BaseModel):
     module_id: int
     title: str
