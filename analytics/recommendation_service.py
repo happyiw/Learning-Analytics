@@ -226,6 +226,13 @@ class RecommendationService:
         }
 
     def _get_matching_rules(self, context: dict) -> list[RecommendationRule]:
+        if (
+            context["average_percentage"] >= 85
+            or context["learning_state"] == "mastered"
+            or context["risk_level"] == "none"
+        ):
+            return []
+
         matching_rules: list[RecommendationRule] = []
         for rule in RULES:
             if (
@@ -237,7 +244,7 @@ class RecommendationService:
             elif (
                 rule.key == "no_progress_after_retries"
                 and context["completed_attempts_count"] >= 3
-                and context["progress_delta"] < 5
+                and context["progress_delta"] < 15
                 and context["trend"] != "improving"
             ):
                 matching_rules.append(rule)

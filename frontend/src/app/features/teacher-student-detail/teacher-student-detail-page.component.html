@@ -1,11 +1,27 @@
-<section class="analytics-page">
-  <article class="analytics-hero">
-    <span class="analytics-hero__badge">Персональная аналитика</span>
-    <h1>Наглядная картина ваших результатов и учебной динамики.</h1>
-    <p>
-      Здесь собраны общая сводка, динамика попыток и расширенные результаты по темам, включая риск, тренд
-      и состояние обучения.
-    </p>
+<section class="analytics-page teacher-student-page">
+  <article class="analytics-hero teacher-student-hero">
+    <div>
+      <span class="analytics-hero__badge">Аналитика студента</span>
+      @if (student(); as studentInfo) {
+        <h1>{{ fullName(studentInfo) }}</h1>
+        <p>
+          Группа {{ studentInfo.group || 'без группы' }}, прогресс {{ studentInfo.completion_rate | number: '1.0-0' }}%,
+          средний результат тестов {{ studentInfo.average_test_percentage | number: '1.0-0' }}%.
+        </p>
+      } @else {
+        <h1>Индивидуальный аналитический профиль</h1>
+        <p>Здесь собраны динамика попыток, результаты по темам и персональные рекомендации.</p>
+      }
+    </div>
+
+    <div class="teacher-student-hero__actions">
+      <a class="teacher-student-link" [routerLink]="['/teacher']">Назад к панели</a>
+      @if (courseId()) {
+        <a class="teacher-student-link teacher-student-link--soft" [routerLink]="['/courses', courseId()]">
+          Открыть курс
+        </a>
+      }
+    </div>
   </article>
 
   @if (errorMessage()) {
@@ -15,7 +31,7 @@
   }
 
   @if (isLoading()) {
-    <div class="page-state">Загрузка аналитики...</div>
+    <div class="page-state">Загрузка аналитики студента...</div>
   } @else if (snapshot(); as data) {
     <section class="analytics-summary-grid">
       <article class="summary-card">
@@ -27,7 +43,7 @@
       <article class="summary-card">
         <span>Средний результат</span>
         <strong>{{ data.summary.average_percentage | number: '1.0-0' }}%</strong>
-        <p>Средний процент по завершенным тестовым попыткам.</p>
+        <p>Средний процент по завершённым тестовым попыткам.</p>
       </article>
 
       <article class="summary-card">
@@ -49,21 +65,9 @@
       </article>
 
       <article class="summary-card">
-        <span>Нестабильных тем</span>
-        <strong>{{ data.unstableTopics.length }}</strong>
-        <p>Темы с заметными колебаниями результата между попытками.</p>
-      </article>
-
-      <article class="summary-card">
-        <span>Улучшающихся тем</span>
-        <strong>{{ data.improvingTopics.length }}</strong>
-        <p>Темы, по которым уже наблюдается положительная динамика.</p>
-      </article>
-
-      <article class="summary-card">
-        <span>Мало данных</span>
-        <strong>{{ data.topicsWithoutEnoughData.length }}</strong>
-        <p>Темы, по которым пока рано делать уверенные выводы.</p>
+        <span>Рекомендации</span>
+        <strong>{{ recommendations().length }}</strong>
+        <p>Персональные рекомендации по следующим шагам.</p>
       </article>
     </section>
 
@@ -72,7 +76,7 @@
         <div class="chart-card__header">
           <div>
             <span>Динамика результатов по датам</span>
-            <strong>Линейный график попыток</strong>
+            <strong>График попыток</strong>
           </div>
           <p>{{ data.dynamics.length }} точек на графике</p>
         </div>
@@ -125,7 +129,7 @@
       </article>
     </section>
 
-    <section class="analytics-table-grid">
+    <section class="analytics-table-grid teacher-student-grid">
       <article class="table-card">
         <div class="table-card__header">
           <span>Слабые темы</span>
@@ -160,33 +164,25 @@
 
       <article class="table-card">
         <div class="table-card__header">
-          <span>Сильные темы</span>
-          <strong>Лучшие результаты</strong>
+          <span>Рекомендации</span>
+          <strong>Что предложить студенту дальше</strong>
         </div>
 
-        @if (data.strongTopics.length) {
-          <table>
-            <thead>
-              <tr>
-                <th>Тема</th>
-                <th>Попытки</th>
-                <th>Средний</th>
-                <th>Состояние</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of data.strongTopics; track trackByModuleId($index, item)) {
-                <tr>
-                  <td>{{ item.module_title }}</td>
-                  <td>{{ item.attempts_count }}</td>
-                  <td>{{ item.average_percentage | number: '1.0-0' }}%</td>
-                  <td>{{ translateLearningState(item.learning_state) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        @if (recommendations().length) {
+          <div class="recommendation-list">
+            @for (recommendation of recommendations(); track trackByRecommendationId($index, recommendation)) {
+              <article class="recommendation-card">
+                <div class="recommendation-card__head">
+                  <strong>{{ recommendation.title }}</strong>
+                  <span>{{ translatePriority(recommendation.priority) }}</span>
+                </div>
+                <p>{{ recommendation.description }}</p>
+                <small>{{ recommendation.reason || recommendation.topic_reason }}</small>
+              </article>
+            }
+          </div>
         } @else {
-          <div class="table-card__empty">Сильные темы появятся после накопления результатов.</div>
+          <div class="table-card__empty">Для выбранного студента нет персональных рекомендаций.</div>
         }
       </article>
     </section>

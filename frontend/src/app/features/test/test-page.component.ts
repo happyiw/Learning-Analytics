@@ -6,6 +6,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TestAnalytics, TestAttempt, TestItem } from '../../core/models/learning.models';
 import { LearningService } from '../../core/services/learning.service';
+import { translateTrendLabel } from '../../core/utils/analytics-labels';
 
 @Component({
   selector: 'app-test-page',
@@ -72,6 +73,10 @@ export class TestPageComponent implements OnInit {
         this.isStarting.set(false);
       }
     });
+  }
+
+  translateTrend(value: string | null | undefined): string {
+    return translateTrendLabel(value);
   }
 
   private loadTest(): void {

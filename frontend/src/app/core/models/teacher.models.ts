@@ -61,6 +61,7 @@ export interface TeacherCourseDashboard {
 }
 
 export interface TeacherStudentDetail {
+  summary: TeacherStudentSummary;
   snapshot: PersonalAnalyticsSnapshot;
   recommendations: PersonalRecommendation[];
 }

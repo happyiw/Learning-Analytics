@@ -112,9 +112,9 @@ class TestAnalyticsService:
             return "not_enough_data"
 
         progress_delta = self.calculate_completion_percentage(attempts[-1]) - self.calculate_completion_percentage(attempts[0])
-        if progress_delta >= 5:
+        if progress_delta >= 15:
             return "improving"
-        if progress_delta <= -5:
+        if progress_delta <= -15:
             return "declining"
         return "stable"
 

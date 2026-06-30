@@ -434,6 +434,22 @@ def get_group_topic_results_for_course(
 
 
 @router.get(
+    "/courses/{course_id}/students/{student_id}/summary/",
+    response_model=TeacherStudentSummaryRead,
+)
+def get_student_summary_for_course(
+    course_id: int,
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+) -> TeacherStudentSummaryRead:
+    _ = current_user
+    _ = get_course_or_404(course_id, db)
+    student = get_student_for_course_or_404(course_id, student_id, db)
+    return build_student_summary_row(db, student, course_id)
+
+
+@router.get(
     "/courses/{course_id}/students/{student_id}/snapshot/",
     response_model=PersonalAnalyticsSnapshotRead,
 )

@@ -7,6 +7,12 @@ import {
   TopicResult
 } from '../../core/models/dashboard.models';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import {
+  translateLearningStateLabel,
+  translateReasonCodeLabel,
+  translateRiskLevelLabel,
+  translateTrendLabel
+} from '../../core/utils/analytics-labels';
 
 interface ChartPoint {
   x: number;
@@ -45,6 +51,22 @@ export class AnalyticsPageComponent implements OnInit {
 
   trackByModuleId(_: number, item: TopicResult): number {
     return item.module_id;
+  }
+
+  translateTrend(value: string): string {
+    return translateTrendLabel(value);
+  }
+
+  translateLearningState(value: string | null): string {
+    return translateLearningStateLabel(value);
+  }
+
+  translateRiskLevel(value: string | null): string {
+    return translateRiskLevelLabel(value);
+  }
+
+  translateReason(reason: string | null | undefined, reasonCode: string | null | undefined): string {
+    return reason || translateReasonCodeLabel(reasonCode);
   }
 
   private loadAnalytics(): void {

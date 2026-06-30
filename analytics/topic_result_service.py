@@ -56,14 +56,15 @@ class TopicResultService:
         failure_rate = failed_attempts_count / completed_attempts_count if completed_attempts_count else 0.0
         weakness_level = self._calculate_weakness_level_from_average(average_percentage)
 
-        if (
-            average_percentage >= 90
-            and passed_attempts_count == completed_attempts_count
-            and completed_lessons_ratio >= 0.8
-            and (stability_index is None or stability_index >= 0.7)
-        ):
-            learning_state = "mastered"
-        elif stability_index is not None and stability_index < 0.45:
+        if average_percentage >= 85:
+            return {
+                "weakness_level": "none",
+                "risk_level": "none",
+                "learning_state": "mastered",
+                "reason_code": None,
+            }
+
+        if stability_index is not None and stability_index < 0.45:
             learning_state = "unstable"
         elif progress_trend == "improving":
             learning_state = "improving"
@@ -194,9 +195,9 @@ class TopicResultService:
             return "not_enough_data"
 
         progress_delta = percentages[-1] - percentages[0]
-        if progress_delta >= 5:
+        if progress_delta >= 15:
             return "improving"
-        if progress_delta <= -5:
+        if progress_delta <= -15:
             return "declining"
         return "stable"
 
@@ -424,7 +425,7 @@ class WeakTopicDetector:
                 f"Средний результат по теме составляет {average_percentage:.2f}%, "
                 "что указывает на низкий уровень усвоения материала."
             )
-        if attempts_count >= 3 and progress_delta < 5 and topic_result["trend"] != "improving":
+        if attempts_count >= 3 and progress_delta < 15 and topic_result["trend"] != "improving":
             return (
                 f"После {attempts_count} завершенных попыток прирост составляет только {progress_delta:.2f} п.п., "
                 "поэтому заметного прогресса по теме пока нет."
@@ -560,10 +561,13 @@ class WeakTopicDetector:
         if completed_attempts_count == 0:
             return include_not_enough_data
 
+        if topic_result["average_percentage"] >= 85:
+            return False
+
         low_average = topic_result["average_percentage"] < 60
         no_progress_after_many_attempts = (
             completed_attempts_count >= 3
-            and topic_result["progress_delta"] < 5
+            and topic_result["progress_delta"] < 15
             and topic_result["trend"] != "improving"
         )
         unfinished_theory_with_failures = (
@@ -605,6 +609,8 @@ class WeakTopicDetector:
     def _is_unstable_topic(self, topic_result: dict) -> bool:
         if topic_result["completed_attempts_count"] < 2:
             return False
+        if topic_result["learning_state"] == "mastered" or topic_result["average_percentage"] >= 85:
+            return False
         stability_index = topic_result["stability_index"]
         return topic_result["learning_state"] == "unstable" or (
             stability_index is not None and stability_index < 0.55
@@ -613,7 +619,9 @@ class WeakTopicDetector:
     def _is_improving_topic(self, topic_result: dict) -> bool:
         if topic_result["completed_attempts_count"] < 2:
             return False
-        return topic_result["trend"] == "improving" or topic_result["progress_delta"] >= 10
+        if topic_result["learning_state"] == "mastered" or topic_result["average_percentage"] >= 85:
+            return False
+        return topic_result["trend"] == "improving" or topic_result["progress_delta"] >= 15
 
     def _is_topic_without_enough_data(self, topic_result: dict) -> bool:
         return topic_result["completed_attempts_count"] < 2
@@ -643,10 +651,10 @@ class WeakTopicDetector:
             return self._decorate_topic(topic_result, "not_enough_data")
         if self._is_weak_topic(topic_result):
             return self._decorate_topic(topic_result, "weak")
+        if self._is_strong_topic(topic_result):
+            return self._decorate_topic(topic_result, "strong")
         if self._is_unstable_topic(topic_result):
             return self._decorate_topic(topic_result, "unstable")
         if self._is_improving_topic(topic_result):
             return self._decorate_topic(topic_result, "improving")
-        if self._is_strong_topic(topic_result):
-            return self._decorate_topic(topic_result, "strong")
         return self._decorate_topic(topic_result, "neutral")

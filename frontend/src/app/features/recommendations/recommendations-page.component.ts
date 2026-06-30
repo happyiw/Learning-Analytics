@@ -10,6 +10,10 @@ import {
   RecommendationScope,
   RecommendationService
 } from '../../core/services/recommendation.service';
+import {
+  translateRecommendationPriorityLabel,
+  translateWeaknessLevelLabel
+} from '../../core/utils/analytics-labels';
 
 @Component({
   selector: 'app-recommendations-page',
@@ -69,6 +73,14 @@ export class RecommendationsPageComponent implements OnInit {
 
   trackByModuleId(_: number, item: ModuleItem): number {
     return item.id;
+  }
+
+  translateWeaknessLevel(value: string | null | undefined): string {
+    return translateWeaknessLevelLabel(value);
+  }
+
+  translatePriority(value: string | null | undefined): string {
+    return translateRecommendationPriorityLabel(value);
   }
 
   onCourseChange(courseIdValue: number | string | null): void {

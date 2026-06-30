@@ -4,6 +4,7 @@ import { forkJoin, Observable } from 'rxjs';
 import { CourseCard, PersonalAnalyticsSnapshot, PersonalRecommendation } from '../models/dashboard.models';
 import {
   TeacherCourseDashboard,
+  TeacherStudentSummary,
   TeacherStudentDetail,
   TopicResultAggregate
 } from '../models/teacher.models';
@@ -34,6 +35,12 @@ export class TeacherService {
     );
   }
 
+  getStudentSummary(courseId: number, studentId: number): Observable<TeacherStudentSummary> {
+    return this.http.get<TeacherStudentSummary>(
+      `/api/teacher/courses/${courseId}/students/${studentId}/summary/`
+    );
+  }
+
   getStudentRecommendations(courseId: number, studentId: number): Observable<PersonalRecommendation[]> {
     return this.http.get<PersonalRecommendation[]>(
       `/api/teacher/courses/${courseId}/students/${studentId}/recommendations/`
@@ -42,6 +49,7 @@ export class TeacherService {
 
   getStudentDetail(courseId: number, studentId: number): Observable<TeacherStudentDetail> {
     return forkJoin({
+      summary: this.getStudentSummary(courseId, studentId),
       snapshot: this.getStudentSnapshot(courseId, studentId),
       recommendations: this.getStudentRecommendations(courseId, studentId)
     });

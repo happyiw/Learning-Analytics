@@ -98,7 +98,7 @@
         <article class="recommendation-card">
           <div class="recommendation-card__meta">
             <span class="recommendation-card__module">{{ item.module_title }}</span>
-            <span class="recommendation-card__weakness">{{ item.weakness_level }}</span>
+            <span class="recommendation-card__weakness">{{ translateWeaknessLevel(item.weakness_level) }}</span>
           </div>
 
           <h2>{{ item.title }}</h2>
@@ -111,7 +111,7 @@
             </div>
             <div>
               <span>Приоритет</span>
-              <strong>{{ item.priority || 'normal' }}</strong>
+              <strong>{{ translatePriority(item.priority || 'normal') }}</strong>
             </div>
             <div>
               <span>Текущий результат</span>

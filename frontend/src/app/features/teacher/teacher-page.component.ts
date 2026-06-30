@@ -2,9 +2,10 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { TeacherService } from '../../core/services/teacher.service';
-import { CourseCard, PersonalAnalyticsSnapshot, PersonalRecommendation } from '../../core/models/dashboard.models';
+import { CourseCard } from '../../core/models/dashboard.models';
 import {
   TeacherCourseDashboard,
   TeacherGroupSummary,
@@ -21,38 +22,42 @@ import {
 export class TeacherPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly teacherService = inject(TeacherService);
+  private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
   readonly courses = signal<CourseCard[]>([]);
   readonly dashboard = signal<TeacherCourseDashboard | null>(null);
   readonly selectedCourseId = signal<number | null>(null);
-  readonly selectedGroupId = signal<string | null>(null);
-  readonly selectedStudentId = signal<number | null>(null);
-  readonly selectedStudentSnapshot = signal<PersonalAnalyticsSnapshot | null>(null);
-  readonly selectedStudentRecommendations = signal<PersonalRecommendation[]>([]);
+  readonly selectedGroupId = signal<string>('__all__');
   readonly groupTopicResults = signal<TopicResultAggregate[]>([]);
   readonly isLoadingCourses = signal(false);
   readonly isLoadingDashboard = signal(false);
-  readonly isLoadingStudent = signal(false);
   readonly isLoadingGroup = signal(false);
   readonly errorMessage = signal('');
-  readonly studentErrorMessage = signal('');
+  readonly allGroupsValue = '__all__';
 
   readonly canViewTeacherPanel = computed(() => {
     const role = this.currentUser()?.role;
     return role === 'teacher' || role === 'admin';
   });
 
-  readonly selectedStudent = computed<TeacherStudentSummary | null>(() => {
-    const studentId = this.selectedStudentId();
-    const students = this.dashboard()?.students || [];
-    return students.find((item) => item.id === studentId) ?? null;
-  });
-
   readonly selectedGroup = computed<TeacherGroupSummary | null>(() => {
     const groupId = this.selectedGroupId();
-    const groups = this.dashboard()?.groups || [];
-    return groups.find((item) => item.group_id === groupId) ?? null;
+    if (groupId === this.allGroupsValue) {
+      return null;
+    }
+
+    return this.dashboard()?.groups.find((item) => item.group_id === groupId) ?? null;
+  });
+
+  readonly filteredStudents = computed<TeacherStudentSummary[]>(() => {
+    const students = this.dashboard()?.students || [];
+    const groupId = this.selectedGroupId();
+    if (groupId === this.allGroupsValue) {
+      return students;
+    }
+
+    return students.filter((item) => item.group === groupId);
   });
 
   readonly displayedGroupResults = computed<TopicResultAggregate[]>(() => {
@@ -88,16 +93,17 @@ export class TeacherPageComponent implements OnInit {
   }
 
   selectGroup(groupId: string | null): void {
+    const normalizedGroupId = groupId || this.allGroupsValue;
     const courseId = this.selectedCourseId();
-    this.selectedGroupId.set(groupId);
+    this.selectedGroupId.set(normalizedGroupId);
 
-    if (!courseId || !groupId) {
+    if (!courseId || normalizedGroupId === this.allGroupsValue) {
       this.groupTopicResults.set([]);
       return;
     }
 
     this.isLoadingGroup.set(true);
-    this.teacherService.getGroupTopicResults(courseId, groupId).subscribe({
+    this.teacherService.getGroupTopicResults(courseId, normalizedGroupId).subscribe({
       next: (results) => {
         this.groupTopicResults.set(results);
         this.isLoadingGroup.set(false);
@@ -110,31 +116,13 @@ export class TeacherPageComponent implements OnInit {
     });
   }
 
-  selectStudent(studentId: number | null): void {
+  openStudent(studentId: number): void {
     const courseId = this.selectedCourseId();
-    this.selectedStudentId.set(studentId);
-    this.selectedStudentSnapshot.set(null);
-    this.selectedStudentRecommendations.set([]);
-    this.studentErrorMessage.set('');
-
-    if (!courseId || !studentId) {
+    if (!courseId) {
       return;
     }
 
-    this.isLoadingStudent.set(true);
-    this.teacherService.getStudentDetail(courseId, studentId).subscribe({
-      next: ({ snapshot, recommendations }) => {
-        this.selectedStudentSnapshot.set(snapshot);
-        this.selectedStudentRecommendations.set(recommendations);
-        this.isLoadingStudent.set(false);
-      },
-      error: (error: HttpErrorResponse) => {
-        this.studentErrorMessage.set(
-          error.error?.detail || 'Не удалось загрузить аналитику и рекомендации по студенту.'
-        );
-        this.isLoadingStudent.set(false);
-      }
-    });
+    void this.router.navigate(['/teacher', 'courses', courseId, 'students', studentId]);
   }
 
   trackByStudentId(_: number, item: TeacherStudentSummary): number {
@@ -147,10 +135,6 @@ export class TeacherPageComponent implements OnInit {
 
   trackByModuleId(_: number, item: TopicResultAggregate): number {
     return item.module_id;
-  }
-
-  trackByRecommendationId(_: number, item: PersonalRecommendation): number {
-    return item.id;
   }
 
   private loadCourses(): void {
@@ -185,26 +169,18 @@ export class TeacherPageComponent implements OnInit {
     this.isLoadingDashboard.set(true);
     this.errorMessage.set('');
     this.groupTopicResults.set([]);
-    this.selectedStudentSnapshot.set(null);
-    this.selectedStudentRecommendations.set([]);
-    this.studentErrorMessage.set('');
 
     this.teacherService.getCourseDashboard(courseId).subscribe({
       next: (dashboard) => {
         this.dashboard.set(dashboard);
         this.isLoadingDashboard.set(false);
 
+        const groupId = this.selectedGroupId();
         const nextGroup =
-          this.selectedGroupId() && dashboard.groups.some((item) => item.group_id === this.selectedGroupId())
-            ? this.selectedGroupId()
-            : dashboard.groups[0]?.group_id ?? null;
+          groupId === this.allGroupsValue || dashboard.groups.some((item) => item.group_id === groupId)
+            ? groupId
+            : this.allGroupsValue;
         this.selectGroup(nextGroup);
-
-        const nextStudent =
-          this.selectedStudentId() && dashboard.students.some((item) => item.id === this.selectedStudentId())
-            ? this.selectedStudentId()
-            : dashboard.students[0]?.id ?? null;
-        this.selectStudent(nextStudent);
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage.set(error.error?.detail || 'Не удалось загрузить сводку преподавателя.');
