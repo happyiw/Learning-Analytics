@@ -2,8 +2,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.deps import (
+    get_async_db,
+    get_current_user,
+    get_current_user_async,
+    get_db,
+    require_teacher_or_admin,
+)
 from backend.models import Course, Module, Question, Test, User
 from backend.schemas import (
     AnalyticsDynamicsPointRead,
@@ -21,7 +28,6 @@ from backend.services.analytics import (
     build_hardest_questions_for_test,
     build_module_question_analytics,
     build_most_missed_questions_for_test,
-    build_personal_analytics_snapshot,
     build_progress,
     build_question_snapshot,
     build_summary,
@@ -30,6 +36,7 @@ from backend.services.analytics import (
     build_weak_topics,
     compute_topic_results,
 )
+from backend.services.student_analytics_async import build_personal_snapshot_from_read_model
 
 router = APIRouter(prefix="/api", tags=["analytics"])
 
@@ -51,11 +58,11 @@ def get_my_topic_results(
 
 
 @router.get("/analytics/my/snapshot/", response_model=PersonalAnalyticsSnapshotRead)
-def get_my_analytics_snapshot(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+async def get_my_analytics_snapshot(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> PersonalAnalyticsSnapshotRead:
-    return build_personal_analytics_snapshot(db, current_user.id)
+    return await build_personal_snapshot_from_read_model(db, current_user.id)
 
 
 @router.get("/analytics/my/summary/", response_model=UserAnalyticsSummaryRead)

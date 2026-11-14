@@ -16,6 +16,7 @@ from backend.enums import QuestionType
 from backend.models import AnswerOption, Course, Lesson, Question, Test
 from backend.seed import bootstrap_database_if_empty
 from backend.schemas import LessonContentBlock, LessonStatItem
+from backend.services.analytics_materialization import backfill_analytics_if_empty
 
 
 def initialize_database(engine: Engine) -> None:
@@ -24,6 +25,7 @@ def initialize_database(engine: Engine) -> None:
 
     with SessionLocal() as db:
         bootstrap_database_if_empty(db)
+        backfill_analytics_if_empty(db)
 
 
 def run_sqlite_migrations(engine: Engine) -> None:

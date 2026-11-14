@@ -5,11 +5,17 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from analytics.student_summary import average
 from analytics.topic_result_service import WeakTopicDetector
 from backend.attempt_metrics import calculate_attempt_is_passed
-from backend.deps import get_db, require_teacher_or_admin
+from backend.deps import (
+    get_async_db,
+    get_db,
+    require_teacher_or_admin,
+    require_teacher_or_admin_async,
+)
 from backend.enums import UserRole
 from backend.models import (
     Course,
@@ -40,6 +46,10 @@ from backend.services.analytics import (
     compute_topic_results,
 )
 from backend.schemas import CourseRead
+from backend.services.teacher_analytics_async import (
+    build_async_course_dashboard,
+    build_async_group_topic_results,
+)
 
 router = APIRouter(prefix="/api/teacher", tags=["teacher"])
 
@@ -375,62 +385,27 @@ def build_group_topic_results_for_course(
 
 
 @router.get("/courses/{course_id}/dashboard/", response_model=TeacherCourseDashboardRead)
-def get_course_dashboard(
+async def get_course_dashboard(
     course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_teacher_or_admin),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(require_teacher_or_admin_async),
 ) -> TeacherCourseDashboardRead:
     _ = current_user
-    course = get_course_or_404(course_id, db)
-    students = get_students_for_course(course_id, db)
-    student_rows = [build_student_summary_row(db, student, course_id) for student in students]
-    groups = build_group_summaries(student_rows)
-    at_risk_students_count = len(
-        [
-            row
-            for row in student_rows
-            if row.high_risk_topics_count > 0 or row.weak_topics_count > 0
-        ]
-    )
-    active_students_count = len(
-        [
-            row
-            for row in student_rows
-            if row.attempts_count > 0 or row.completed_lessons > 0
-        ]
-    )
-
-    return TeacherCourseDashboardRead(
-        course=CourseRead.model_validate(course),
-        summary=TeacherCourseSummaryRead(
-            enrolled_students_count=len(student_rows),
-            groups_count=len(groups),
-            active_students_count=active_students_count,
-            average_completion_rate=average([row.completion_rate for row in student_rows]),
-            average_test_percentage=average(
-                [row.average_test_percentage for row in student_rows]
-            ),
-            at_risk_students_count=at_risk_students_count,
-        ),
-        groups=groups,
-        students=student_rows,
-        module_topic_results=build_topic_result_aggregates(db, course_id=course_id),
-    )
+    return await build_async_course_dashboard(db, course_id)
 
 
 @router.get(
     "/courses/{course_id}/groups/{group_id}/topic-results/",
     response_model=list[TopicResultAggregateRead],
 )
-def get_group_topic_results_for_course(
+async def get_group_topic_results_for_course(
     course_id: int,
     group_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_teacher_or_admin),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(require_teacher_or_admin_async),
 ) -> list[TopicResultAggregateRead]:
     _ = current_user
-    _ = get_course_or_404(course_id, db)
-    return build_group_topic_results_for_course(db, course_id, group_id)
+    return await build_async_group_topic_results(db, course_id, group_id)
 
 
 @router.get(

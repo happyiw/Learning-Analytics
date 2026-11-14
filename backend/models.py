@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.attempt_metrics import calculate_attempt_is_passed, calculate_attempt_percentage
@@ -227,6 +227,10 @@ class AnswerOption(TimestampMixin, Base):
 
 class TestAttempt(Base):
     __tablename__ = "test_attempts"
+    __table_args__ = (
+        Index("ix_test_attempts_user_test_finished", "user_id", "test_id", "finished_at"),
+        Index("ix_test_attempts_user_finished", "user_id", "finished_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -323,7 +327,10 @@ class UserAnswerOptionSelection(Base):
 
 class LessonProgress(Base):
     __tablename__ = "lesson_progress"
-    __table_args__ = (UniqueConstraint("user_id", "lesson_id"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "lesson_id"),
+        Index("ix_lesson_progress_user_completed_lesson", "user_id", "is_completed", "lesson_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -351,6 +358,64 @@ class TopicResult(Base):
 
     user: Mapped[User] = relationship(back_populates="topic_results")
     module: Mapped[Module] = relationship(back_populates="topic_results")
+
+
+class StudentModuleMetric(Base):
+    __tablename__ = "student_module_metrics"
+    __table_args__ = (
+        UniqueConstraint("user_id", "module_id"),
+        Index("ix_student_module_metrics_module_risk", "module_id", "risk_level"),
+        Index("ix_student_module_metrics_module_weakness", "module_id", "weakness_level"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"), index=True)
+    attempts_count: Mapped[int] = mapped_column(Integer, default=0)
+    completed_attempts_count: Mapped[int] = mapped_column(Integer, default=0)
+    passed_attempts_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_attempts_count: Mapped[int] = mapped_column(Integer, default=0)
+    average_percentage: Mapped[float] = mapped_column(Float, default=0)
+    best_percentage: Mapped[float] = mapped_column(Float, default=0)
+    first_percentage: Mapped[float] = mapped_column(Float, default=0)
+    last_percentage: Mapped[float] = mapped_column(Float, default=0)
+    progress_delta: Mapped[float] = mapped_column(Float, default=0)
+    trend: Mapped[str] = mapped_column(String(50), default="not_enough_data")
+    stability_index: Mapped[float | None] = mapped_column(Float, nullable=True)
+    completed_lessons_ratio: Mapped[float] = mapped_column(Float, default=0)
+    weakness_level: Mapped[str] = mapped_column(String(50), default="none")
+    risk_level: Mapped[str] = mapped_column(String(50), default="medium")
+    learning_state: Mapped[str] = mapped_column(String(50), default="not_enough_data")
+    reason_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    is_weak_topic: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_strong_topic: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LearningEvent(Base):
+    __tablename__ = "learning_events"
+    __table_args__ = (
+        Index("ix_learning_events_outbox", "published_at", "id"),
+        Index(
+            "ix_learning_events_processing",
+            "processed_at",
+            "id",
+            postgresql_where=text("processed_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True, index=True)
+    module_id: Mapped[int | None] = mapped_column(ForeignKey("modules.id"), nullable=True, index=True)
+    entity_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    payload: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
 
 class Recommendation(TimestampMixin, Base):

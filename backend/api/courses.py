@@ -5,8 +5,15 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.deps import (
+    get_async_db,
+    get_current_user,
+    get_current_user_async,
+    get_db,
+    require_teacher_or_admin,
+)
 from backend.enums import UserRole
 from backend.models import Course, CourseEnrollment, Module, User
 from backend.schemas import (
@@ -24,14 +31,17 @@ from backend.schemas import (
     TopicResultRead,
 )
 from backend.services.analytics import (
-    build_personal_recommendations,
-    build_progress,
     compute_topic_results,
 )
 from backend.services.course_access import (
     create_or_get_course_enrollment,
     ensure_course_access,
+    ensure_course_access_async,
     ensure_course_is_published,
+)
+from backend.services.student_analytics_async import (
+    build_personal_recommendations_from_read_model,
+    build_progress_from_read_model,
 )
 
 router = APIRouter(prefix="/api/courses", tags=["courses"])
@@ -227,14 +237,16 @@ def list_course_modules(
 
 
 @router.get("/{course_id}/progress/my/", response_model=ProgressRead)
-def get_course_progress(
+async def get_course_progress(
     course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> ProgressRead:
-    course = get_course_or_404(course_id, db)
-    ensure_course_access(db, course, current_user)
-    return build_progress(db, current_user.id, course_id=course_id)
+    course = await db.get(Course, course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
+    await ensure_course_access_async(db, course, current_user)
+    return await build_progress_from_read_model(db, current_user.id, course_id=course_id)
 
 
 @router.get("/{course_id}/topic-results/my/", response_model=list[TopicResultRead])
@@ -249,14 +261,20 @@ def get_course_topic_results(
 
 
 @router.get("/{course_id}/recommendations/my/", response_model=list[PersonalRecommendationRead])
-def get_course_recommendations(
+async def get_course_recommendations(
     course_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> list[PersonalRecommendationRead]:
-    course = get_course_or_404(course_id, db)
-    ensure_course_access(db, course, current_user)
-    return build_personal_recommendations(db, current_user.id, course_id=course_id)
+    course = await db.get(Course, course_id)
+    if course is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
+    await ensure_course_access_async(db, course, current_user)
+    return await build_personal_recommendations_from_read_model(
+        db,
+        current_user.id,
+        course_id=course_id,
+    )
 
 
 @router.post("/", response_model=CourseRead, status_code=status.HTTP_201_CREATED)

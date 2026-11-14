@@ -38,8 +38,8 @@ from backend.schemas import (
     UserAnswerCreate,
     UserAnswerRead,
 )
-from backend.services.analytics import upsert_topic_result
 from backend.services.analytics import build_test_analytics
+from backend.services.analytics_materialization import record_learning_event
 from backend.services.course_access import ensure_course_access
 
 router = APIRouter(tags=["tests"])
@@ -457,7 +457,16 @@ def finish_attempt(
     attempt.max_score = max_score
     attempt.finished_at = datetime.now(timezone.utc)
     if attempt.test.module_id is not None:
-        upsert_topic_result(db, attempt.user_id, attempt.test.module_id)
+        record_learning_event(
+            db,
+            event_type="test.attempt.completed",
+            user_id=attempt.user_id,
+            course_id=attempt.test.course_id,
+            module_id=attempt.test.module_id,
+            entity_type="test_attempt",
+            entity_id=attempt.id,
+            payload={"score": score, "max_score": max_score},
+        )
     db.commit()
     db.refresh(attempt)
     return attempt

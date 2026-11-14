@@ -3,8 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.deps import (
+    get_async_db,
+    get_current_user,
+    get_current_user_async,
+    get_db,
+    require_teacher_or_admin,
+)
 from backend.lesson_content import build_lesson_read
 from backend.models import Course, Lesson, Module, Test, User
 from backend.schemas import (
@@ -19,11 +26,13 @@ from backend.schemas import (
     TopicResultRead,
 )
 from backend.services.analytics import (
-    build_personal_recommendations,
-    build_progress,
     compute_topic_results,
 )
-from backend.services.course_access import ensure_course_access
+from backend.services.course_access import ensure_course_access, ensure_course_access_async
+from backend.services.student_analytics_async import (
+    build_personal_recommendations_from_read_model,
+    build_progress_from_read_model,
+)
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -85,17 +94,19 @@ def retrieve_module(
 
 
 @router.get("/{module_id}/progress/my/", response_model=ProgressRead)
-def get_module_progress(
+async def get_module_progress(
     module_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> ProgressRead:
-    module = get_module_or_404(module_id, db)
-    course = db.get(Course, module.course_id)
+    module = await db.get(Module, module_id)
+    if module is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    course = await db.get(Course, module.course_id)
     if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
-    ensure_course_access(db, course, current_user)
-    return build_progress(db, current_user.id, module_id=module_id)
+    await ensure_course_access_async(db, course, current_user)
+    return await build_progress_from_read_model(db, current_user.id, module_id=module_id)
 
 
 @router.get("/{module_id}/topic-results/my/", response_model=list[TopicResultRead])
@@ -113,17 +124,23 @@ def get_module_topic_results(
 
 
 @router.get("/{module_id}/recommendations/my/", response_model=list[PersonalRecommendationRead])
-def get_module_recommendations(
+async def get_module_recommendations(
     module_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> list[PersonalRecommendationRead]:
-    module = get_module_or_404(module_id, db)
-    course = db.get(Course, module.course_id)
+    module = await db.get(Module, module_id)
+    if module is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
+    course = await db.get(Course, module.course_id)
     if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found.")
-    ensure_course_access(db, course, current_user)
-    return build_personal_recommendations(db, current_user.id, module_id=module_id)
+    await ensure_course_access_async(db, course, current_user)
+    return await build_personal_recommendations_from_read_model(
+        db,
+        current_user.id,
+        module_id=module_id,
+    )
 
 
 @router.post("/", response_model=ModuleRead, status_code=status.HTTP_201_CREATED)

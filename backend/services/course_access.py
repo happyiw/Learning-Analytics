@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.enums import UserRole
 from backend.models import Course, CourseEnrollment, User
@@ -56,6 +57,30 @@ def ensure_course_access(
     else:
         detail = "This course is closed. Ask a teacher or admin for access."
 
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+
+async def ensure_course_access_async(
+    db: AsyncSession,
+    course: Course,
+    current_user: User,
+) -> None:
+    ensure_course_is_published(course)
+    if is_privileged_user(current_user):
+        return
+    enrollment_id = await db.scalar(
+        select(CourseEnrollment.id).where(
+            CourseEnrollment.user_id == current_user.id,
+            CourseEnrollment.course_id == course.id,
+        )
+    )
+    if enrollment_id is not None:
+        return
+    detail = (
+        "Enroll in this course to access its materials."
+        if course.is_open
+        else "This course is closed. Ask a teacher or admin for access."
+    )
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 

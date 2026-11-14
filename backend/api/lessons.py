@@ -14,6 +14,7 @@ from backend.lesson_content import (
     serialize_lesson_blocks,
 )
 from backend.models import Course, Lesson, LessonProgress, Module, User
+from backend.services.analytics_materialization import record_learning_event
 from backend.schemas import (
     LessonCreate,
     LessonDetailRead,
@@ -98,6 +99,15 @@ def complete_lesson(
 
     progress.is_completed = True
     progress.completed_at = datetime.now(timezone.utc)
+    record_learning_event(
+        db,
+        event_type="lesson.completed",
+        user_id=current_user.id,
+        course_id=lesson.module.course_id,
+        module_id=lesson.module_id,
+        entity_type="lesson",
+        entity_id=lesson.id,
+    )
     db.commit()
     db.refresh(progress)
     return LessonProgressRead(

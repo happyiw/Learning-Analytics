@@ -3,8 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.deps import get_current_user, get_db, require_teacher_or_admin
+from backend.deps import (
+    get_async_db,
+    get_current_user_async,
+    get_db,
+    require_teacher_or_admin,
+)
 from backend.models import Course, Module, Recommendation, User
 from backend.schemas import (
     MessageRead,
@@ -13,7 +19,7 @@ from backend.schemas import (
     RecommendationRead,
     RecommendationUpdate,
 )
-from backend.services.analytics import build_personal_recommendations
+from backend.services.student_analytics_async import build_personal_recommendations_from_read_model
 from backend.services.course_access import ensure_course_access
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
@@ -27,11 +33,11 @@ def get_recommendation_or_404(recommendation_id: int, db: Session) -> Recommenda
 
 
 @router.get("/my/", response_model=list[PersonalRecommendationRead])
-def get_my_recommendations(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+async def get_my_recommendations(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user_async),
 ) -> list[PersonalRecommendationRead]:
-    return build_personal_recommendations(db, current_user.id)
+    return await build_personal_recommendations_from_read_model(db, current_user.id)
 
 
 @router.get("/", response_model=list[RecommendationRead])

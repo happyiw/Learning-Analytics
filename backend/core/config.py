@@ -35,6 +35,14 @@ class Settings:
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120")
     )
     database_url: str = os.getenv("DATABASE_URL", _default_database_url())
+    db_pool_size: int = int(os.getenv("DB_POOL_SIZE", "8"))
+    db_max_overflow: int = int(os.getenv("DB_MAX_OVERFLOW", "8"))
+    db_pool_timeout: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    db_pool_recycle: int = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+    analytics_worker_interval_seconds: float = float(
+        os.getenv("ANALYTICS_WORKER_INTERVAL_SECONDS", "1")
+    )
+    analytics_worker_batch_size: int = int(os.getenv("ANALYTICS_WORKER_BATCH_SIZE", "100"))
     seed_on_startup: bool = _env_flag("SEED_ON_STARTUP", True)
     seed_data_dir: Path = Path(os.getenv("SEED_DATA_DIR", str(DATA_DIR)))
     migrate_sqlite_path: Path | None = (

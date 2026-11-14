@@ -45,14 +45,17 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)) -> User:
 
 @router.post("/login/", response_model=TokenRead)
 def login_user(payload: UserLogin, db: Session = Depends(get_db)) -> TokenRead:
-    user = db.scalar(select(User).where(User.username == payload.username))
-    if user is None or not verify_password(payload.password, user.password_hash):
+    credentials = db.execute(
+        select(User.id, User.password_hash).where(User.username == payload.username)
+    ).one_or_none()
+    db.rollback()  # Release the connection before the CPU-bound password verification.
+    if credentials is None or not verify_password(payload.password, credentials.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
         )
 
-    return TokenRead(access_token=create_access_token(str(user.id)))
+    return TokenRead(access_token=create_access_token(str(credentials.id)))
 
 
 @router.get("/me/", response_model=UserRead)
